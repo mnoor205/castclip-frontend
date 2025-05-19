@@ -38,9 +38,6 @@ export async function createCheckoutSession(priceId: PriceId) {
             quantity: 1,
         }],
         allow_promotion_codes: true,
-        automatic_tax: {
-            enabled: true
-        },
         customer: user.stripeCustomerId!,
         mode: "payment",
         success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`
