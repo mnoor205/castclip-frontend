@@ -35,8 +35,12 @@ export async function createCheckoutSession(priceId: PriceId) {
     const stripeSession = await stripe.checkout.sessions.create({
         line_items: [{
             price: PRICE_IDS[priceId],
-            quantity: 1
+            quantity: 1,
         }],
+        allow_promotion_codes: true,
+        automatic_tax: {
+            enabled: true
+        },
         customer: user.stripeCustomerId!,
         mode: "payment",
         success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`
