@@ -3,10 +3,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useState } from "react";
-import { signIn } from "@/lib/auth-client";
+import { authClient, signIn } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
+
+  const { data: session } = authClient.useSession() 
+  const router = useRouter()
+
+  if(session?.user.id) {
+    router.replace("/dashboard")
+  }
+
   const [loading, setLoading] = useState(false);
   
   return (

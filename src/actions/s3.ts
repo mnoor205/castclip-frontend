@@ -15,12 +15,13 @@ export async function generateUploadUrl(fileInfo: {
     if (!user) throw new Error("Unauthorized")
 
     const s3Client = new S3Client({
-        region: process.env.AWS_REGION,
-        credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-        },
-    })
+    region: "auto",
+    endpoint: process.env.S3_ENDPOINT!,
+    credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!
+    },
+})
 
     const fileExtension = fileInfo.fileName.split(".").pop() || ""
 
@@ -28,7 +29,7 @@ export async function generateUploadUrl(fileInfo: {
     const key = `${uniqueId}/original.${fileExtension}`
 
     const command = new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+        Bucket: "ai-podcast-clipper",
         Key: key,
         ContentType: fileInfo.contentType
     })
