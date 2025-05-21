@@ -87,7 +87,7 @@ model UploadedFile {
   status String @default("queued") // processing, processed, no credits
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  clipCount Int  @default(1)
   Clip Clip[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -10,10 +10,11 @@ import { useState } from "react"
 import { generateUploadUrl } from "@/actions/s3"
 import { toast } from "sonner"
 import { processVideo } from "@/actions/generation"
-import { Table, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+import { Table, TableCell, TableHead, TableHeader, TableRow, TableBody } from "../ui/table"
 import { Badge } from "../ui/badge"
 import { useRouter } from "next/navigation"
 import { ClipDisplay } from "./clip-display"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
 export default function DashboardPage({
     uploadedFiles,
@@ -34,6 +35,7 @@ export default function DashboardPage({
     const [files, setFiles] = useState<File[]>([])
     const [uploading, setUploading] = useState(false)
     const [refreshing, setRefreshing] = useState<boolean>(false)
+    const [clipCount, setClipCount] = useState<number>(1)
     const router = useRouter()
 
     const handleRefresh = async () => {
@@ -62,7 +64,8 @@ export default function DashboardPage({
         try {
             const { success, signedUrl, uploadedFileId } = await generateUploadUrl({
                 fileName: file.name,
-                contentType: file.type
+                contentType: file.type,
+                clipCount: clipCount
             })
 
             if (!success) throw new Error("Failed to get upload URL")
@@ -94,6 +97,10 @@ export default function DashboardPage({
         } finally {
             setUploading(false)
         }
+    }
+
+    const handleClipCountChange = (value: number) => {
+        setClipCount(value)
     }
 
     return (
@@ -163,16 +170,30 @@ export default function DashboardPage({
                                         </div>
                                     )}
                                 </div>
-                                <Button onClick={handleUpload} disabled={files.length === 0 || uploading}>
-                                    {uploading ? (
-                                        <>
-                                            <Loader2 className="mr-2 m-4 h-4 animate-spin" />
-                                            Uploading...
-                                        </>
-                                    ) : (
-                                        "Upload and Generate Clips"
-                                    )}
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Select onValueChange={(value) => handleClipCountChange(Number(value))}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={clipCount} defaultValue={clipCount} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1">1</SelectItem>
+                                            <SelectItem value="2">2</SelectItem>
+                                            <SelectItem value="3">3</SelectItem>
+                                            <SelectItem value="4">4</SelectItem>
+                                            <SelectItem value="5">5</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button onClick={handleUpload} disabled={files.length === 0 || uploading}>
+                                        {uploading ? (
+                                            <>
+                                                <Loader2 className="mr-2 m-4 h-4 animate-spin" />
+                                                Uploading...
+                                            </>
+                                        ) : (
+                                            "Upload and Generate Clips"
+                                        )}
+                                    </Button>
+                                </div>
                             </div>
 
                             {uploadedFiles.length > 0 && (
@@ -197,37 +218,39 @@ export default function DashboardPage({
                                                     <TableHead>Clip Created</TableHead>
                                                 </TableRow>
                                             </TableHeader>
-                                            {uploadedFiles.map((item) => (
-                                                <TableRow key={item.id}>
-                                                    <TableCell className="max-w-xs truncate font-medium">
-                                                        {item.fileName}
-                                                    </TableCell>
-                                                    <TableCell className="text-muted-foreground font-sm">
-                                                        {new Date(item.createdAt).toLocaleString()}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {item.status === "queued" && (
-                                                            <Badge variant={"outline"}>Queued</Badge>
-                                                        )}
-                                                        {item.status === "processing" && (
-                                                            <Badge variant={"outline"}>Processing</Badge>
-                                                        )}
-                                                        {item.status === "processed" && (
-                                                            <Badge variant={"outline"}>Processed</Badge>
-                                                        )}
-                                                        {item.status === "failed" && (
-                                                            <Badge variant={"destructive"}>Failed</Badge>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {item.clipsCount > 0 ? (
-                                                            <span>{item.clipsCount} clip{item.clipsCount !== 1 ? "s" : ""}</span>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">No Clips Yet</span>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                            <TableBody>
+                                                {uploadedFiles.map((item) => (
+                                                    <TableRow key={item.id}>
+                                                        <TableCell className="max-w-xs truncate font-medium">
+                                                            {item.fileName}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground font-sm">
+                                                            {new Date(item.createdAt).toLocaleString()}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {item.status === "queued" && (
+                                                                <Badge variant={"outline"}>Queued</Badge>
+                                                            )}
+                                                            {item.status === "processing" && (
+                                                                <Badge variant={"outline"}>Processing</Badge>
+                                                            )}
+                                                            {item.status === "processed" && (
+                                                                <Badge variant={"outline"}>Processed</Badge>
+                                                            )}
+                                                            {item.status === "failed" && (
+                                                                <Badge variant={"destructive"}>Failed</Badge>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {item.clipsCount > 0 ? (
+                                                                <span>{item.clipsCount} clip{item.clipsCount !== 1 ? "s" : ""}</span>
+                                                            ) : (
+                                                                <span className="text-muted-foreground">No Clips Yet</span>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
                                         </Table>
                                     </div>
                                 </div>

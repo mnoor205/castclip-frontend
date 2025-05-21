@@ -7,7 +7,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { prismaDB } from "@/lib/prisma"
 
 export async function generateUploadUrl(fileInfo: {
-    fileName: string, contentType: string
+    fileName: string, contentType: string, clipCount: number
 }): Promise<{ success: boolean, signedUrl: string, key: string, uploadedFileId: string }> {
 
     const user = await getUserData()
@@ -41,7 +41,8 @@ export async function generateUploadUrl(fileInfo: {
             userId: user.id,
             s3Key: key,
             displayName: fileInfo.fileName,
-            uploaded: false
+            uploaded: false,
+            clipCount: fileInfo.clipCount
         },
         select: {
             id: true
