@@ -135,15 +135,16 @@ export const processVideo = inngest.createFunction(
 
 async function lists3ObjectsByPrefix(prefix: string) {
   const s3Client = new S3Client({
-    region: process.env.AWS_REGION,
+    region: "auto",
+    endpoint: process.env.S3_ENDPOINT!,
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
     }
   })
 
   const listCommand = new ListObjectsV2Command({
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: process.env.R2_BUCKET_NAME,
     Prefix: prefix
   })
 
