@@ -39,7 +39,10 @@ export const processVideo = inngest.createFunction(
         }
       })
 
-      if (credits > 0) {
+      // Calculate how many clips the user can afford (each clip costs 2 credits)
+      const affordableClipCount = Math.min(Math.floor(credits / 2), clipCount);
+      
+      if (affordableClipCount > 0) {
         await step.run("set-status-processing", async () => {
           await prismaDB.uploadedFile.update({
             where: {
@@ -53,7 +56,7 @@ export const processVideo = inngest.createFunction(
 
         await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
             method: "POST",
-            body: JSON.stringify({ s3_key: s3Key, clip_count: clipCount }),
+            body: JSON.stringify({ s3_key: s3Key, clip_count: affordableClipCount }),
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`
@@ -61,7 +64,8 @@ export const processVideo = inngest.createFunction(
         })
 
         const { clipsFound } = await step.run("create-clips-in-db", async () => {
-          const folderPrefix = s3Key.split("/")[0]!
+          const parts = s3Key.split("/")
+          const folderPrefix = parts.length >= 2 ? `${parts[0]}/${parts[1]}` : s3Key
 
           const allKeys = await lists3ObjectsByPrefix(folderPrefix)
 
@@ -90,7 +94,7 @@ export const processVideo = inngest.createFunction(
             },
             data: {
               credits: {
-                decrement: Math.min(credits, clipsFound)*2
+                decrement: clipsFound * 2
               }
             }
           })

@@ -136,7 +136,7 @@ export default function BillingPage() {
       <div className="bg-muted/50 rounded-lg p-6">
         <h3 className="mb-4 text-lg font-semibold">How credits work</h3>
         <ul className="text-muted-foreground list-disc space-y-2 pl-5 text-sm">
-          <li>1 credit = 1 minute of podcast processing</li>
+          <li>1 clip will cost approximately 2 credits</li>
           <li>
             The program will create around 1 clip per 5 minutes of podcast
           </li>

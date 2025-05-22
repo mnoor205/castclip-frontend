@@ -219,7 +219,9 @@ export default function DashboardPage({
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {uploadedFiles.map((item) => (
+                                                {[...uploadedFiles]
+                                                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                                    .map((item) => (
                                                     <TableRow key={item.id}>
                                                         <TableCell className="max-w-xs truncate font-medium">
                                                             {item.fileName}
@@ -229,16 +231,16 @@ export default function DashboardPage({
                                                         </TableCell>
                                                         <TableCell>
                                                             {item.status === "queued" && (
-                                                                <Badge variant={"outline"}>Queued</Badge>
+                                                                <Badge className="bg-blue-500 text-white">Queued</Badge>
                                                             )}
                                                             {item.status === "processing" && (
-                                                                <Badge variant={"outline"}>Processing</Badge>
+                                                                <Badge className="bg-yellow-500 text-white">Processing</Badge>
                                                             )}
                                                             {item.status === "processed" && (
-                                                                <Badge variant={"outline"}>Processed</Badge>
+                                                                <Badge className="bg-green-500 text-white">Processed</Badge>
                                                             )}
                                                             {item.status === "failed" && (
-                                                                <Badge variant={"destructive"}>Failed</Badge>
+                                                                <Badge className="bg-red-500 text-white">Failed</Badge>
                                                             )}
                                                         </TableCell>
                                                         <TableCell>
