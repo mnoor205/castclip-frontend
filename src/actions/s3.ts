@@ -26,7 +26,7 @@ export async function generateUploadUrl(fileInfo: {
     const fileExtension = fileInfo.fileName.split(".").pop() || ""
 
     const uniqueId = uuidv4()
-    const key = `${uniqueId}/original.${fileExtension}`
+    const key = `${user.id}/${uniqueId}/original.${fileExtension}`
 
     const command = new PutObjectCommand({
         Bucket: "ai-podcast-clipper",
@@ -38,6 +38,7 @@ export async function generateUploadUrl(fileInfo: {
 
     const uploadedFileDbRecord = await prismaDB.uploadedFile.create({
         data: {
+            id: uniqueId,
             userId: user.id,
             s3Key: key,
             displayName: fileInfo.fileName,

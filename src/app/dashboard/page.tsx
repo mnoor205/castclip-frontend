@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getUserData } from "@/actions/user"
 import DashboardPage from "@/components/dashboard/dashboard-page"
 import { prismaDB } from "@/lib/prisma"
@@ -41,7 +40,7 @@ export default async function Dashboard() {
         }
     })
 
-    const formattedFiles = userData.UploadedFile.map((file: any) => ({
+    const formattedFiles = userData.UploadedFile.map((file) => ({
         id: file.id,
         s3Key: file.s3Key,
         fileName: file.displayName || "Unknown filename",

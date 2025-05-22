@@ -29,7 +29,6 @@ export const processVideo = inngest.createFunction(
               }
             },
             s3Key: true,
-            clipCount: true,
           }
         })
 
@@ -54,7 +53,7 @@ export const processVideo = inngest.createFunction(
 
         await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
             method: "POST",
-            body: JSON.stringify({ s3_key: s3Key, clip_count: clipCount || 1 }),
+            body: JSON.stringify({ s3_key: s3Key, clip_count: clipCount }),
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`
@@ -91,7 +90,7 @@ export const processVideo = inngest.createFunction(
             },
             data: {
               credits: {
-                decrement: Math.min(credits, clipsFound)
+                decrement: Math.min(credits, clipsFound)*2
               }
             }
           })

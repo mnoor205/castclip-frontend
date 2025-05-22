@@ -80,7 +80,7 @@ export default function DashboardPage({
 
             if (!uploadResponse.ok) throw new Error(`Upload failed with status: ${uploadResponse.status}`)
 
-            await processVideo(uploadedFileId)
+            await processVideo(uploadedFileId, clipCount)
 
             setFiles([])
 
