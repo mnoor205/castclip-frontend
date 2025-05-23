@@ -2,9 +2,11 @@
 import { createCheckoutSession } from "@/actions/stripe";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { authClient } from "@/lib/auth-client";
 import { PricingPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
+import Link from "next/link";
 
 const plans: PricingPlan[] = [
   {
@@ -40,7 +42,7 @@ const plans: PricingPlan[] = [
   },
 ];
 
-function PricingCard({ plan }: { plan: PricingPlan }) {
+function PricingCard({ plan, userId }: { plan: PricingPlan, userId?: string }) {
   return (
     <Card
       className={cn(
@@ -76,15 +78,31 @@ function PricingCard({ plan }: { plan: PricingPlan }) {
         </ul>
       </CardContent>
       <CardFooter>
-        <Button onClick={() => createCheckoutSession(plan.priceId)} variant={plan.buttonVariant} className="w-full">
-          Choose Plan
-        </Button>
+        {userId ? (
+          <Button onClick={() => createCheckoutSession(plan.priceId)} variant={plan.buttonVariant} className="w-full">
+            Choose Plan
+          </Button>
+        ) : (
+          <Link className="w-full" href='/sign-in'>
+            <Button variant={plan.buttonVariant} className="w-full">
+              Choose Plan
+            </Button>
+          </Link>
+
+        )}
       </CardFooter>
     </Card>
   );
 }
 
 export default function BillingPage() {
+
+  const { 
+        data: session,
+    } = authClient.useSession() 
+
+    const user = session?.user
+
   return (
     <div className="mx-auto flex flex-col space-y-8 px-4 py-12">
       <div className="relative flex items-center justify-center gap-4">
@@ -103,7 +121,7 @@ export default function BillingPage() {
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {plans.map((plan) => (
-          <PricingCard key={plan.title} plan={plan} />
+          <PricingCard key={plan.title} plan={plan} userId={user?.id} />
         ))}
       </div>
 

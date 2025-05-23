@@ -51,7 +51,7 @@ export default function DashboardPage({
     const handleUpload = async () => {
         if (files.length === 0) return
 
-        if(credits <= 0) {
+        if (credits <= 0) {
             toast("Please purchase credits to generate clips", {
                 description: `Current Credits: ${credits}`
             })
@@ -201,9 +201,9 @@ export default function DashboardPage({
                                     <div className="mb-2 flex items-center justify-between">
                                         <h3 className="text-md mb-2 font-medium">Queue Status</h3>
                                         <Button variant={"outline"} size={"sm"} onClick={handleRefresh} disabled={refreshing}>
-                                        {refreshing && (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        )}
+                                            {refreshing && (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            )}
                                             Refresh
                                         </Button>
                                     </div>
@@ -222,36 +222,36 @@ export default function DashboardPage({
                                                 {[...uploadedFiles]
                                                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                                                     .map((item) => (
-                                                    <TableRow key={item.id}>
-                                                        <TableCell className="max-w-xs truncate font-medium">
-                                                            {item.fileName}
-                                                        </TableCell>
-                                                        <TableCell className="text-muted-foreground font-sm">
-                                                            {new Date(item.createdAt).toLocaleString()}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {item.status === "queued" && (
-                                                                <Badge className="bg-blue-500 text-white">Queued</Badge>
-                                                            )}
-                                                            {item.status === "processing" && (
-                                                                <Badge className="bg-yellow-500 text-white">Processing</Badge>
-                                                            )}
-                                                            {item.status === "processed" && (
-                                                                <Badge className="bg-green-500 text-white">Processed</Badge>
-                                                            )}
-                                                            {item.status === "failed" && (
-                                                                <Badge className="bg-red-500 text-white">Failed</Badge>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {item.clipsCount > 0 ? (
-                                                                <span>{item.clipsCount} clip{item.clipsCount !== 1 ? "s" : ""}</span>
-                                                            ) : (
-                                                                <span className="text-muted-foreground">No Clips Yet</span>
-                                                            )}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
+                                                        <TableRow key={item.id}>
+                                                            <TableCell className="max-w-xs truncate font-medium">
+                                                                {item.fileName}
+                                                            </TableCell>
+                                                            <TableCell className="text-muted-foreground font-sm">
+                                                                {new Date(item.createdAt).toLocaleString()}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {item.status === "queued" && (
+                                                                    <Badge className="bg-blue-500 text-white">Queued</Badge>
+                                                                )}
+                                                                {item.status === "processing" && (
+                                                                    <Badge className="bg-yellow-500 text-white">Processing</Badge>
+                                                                )}
+                                                                {item.status === "processed" && (
+                                                                    <Badge className="bg-green-500 text-white">Processed</Badge>
+                                                                )}
+                                                                {item.status === "failed" && (
+                                                                    <Badge className="bg-red-500 text-white">Failed</Badge>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {item.clipsCount > 0 ? (
+                                                                    <span>{item.clipsCount} clip{item.clipsCount !== 1 ? "s" : ""}</span>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground">No Clips Yet</span>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
                                             </TableBody>
                                         </Table>
                                     </div>
