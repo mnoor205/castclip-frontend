@@ -1,25 +1,10 @@
-"use client";
-
-import { createCheckoutSession, PriceId } from "@/actions/stripe";
-import { Button, buttonVariants } from "@/components/ui/button";
+"use client"
+import { createCheckoutSession } from "@/actions/stripe";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { PricingPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import type { VariantProps } from "class-variance-authority";
-import { ArrowLeftIcon, CheckIcon } from "lucide-react";
-import Link from "next/link";
-
-
-interface PricingPlan {
-  title: string;
-  price: string;
-  description: string;
-  features: string[];
-  buttonText: string;
-  buttonVariant: VariantProps<typeof buttonVariants>["variant"];
-  isPopular?: boolean;
-  savePercentage?: string;
-  priceId: PriceId;
-}
+import { CheckIcon } from "lucide-react";
 
 const plans: PricingPlan[] = [
   {
@@ -60,7 +45,9 @@ function PricingCard({ plan }: { plan: PricingPlan }) {
     <Card
       className={cn(
         "relative flex flex-col",
-        plan.isPopular && "border-primary border-2",
+        plan.isPopular && "border-primary border-2 shadow-xl",
+        !plan.isPopular &&
+        "shadow-lg hover:shadow-xl transition-shadow duration-300"
       )}
     >
       {plan.isPopular && (
@@ -68,17 +55,17 @@ function PricingCard({ plan }: { plan: PricingPlan }) {
           Most Popular
         </div>
       )}
-      <CardHeader className="flex-1">
+      <CardHeader className="flex-1 pt-10 sm:pt-6">
         <CardTitle>{plan.title}</CardTitle>
-        <div className="text-4xl font-bold">{plan.price} </div>
+        <div className="text-4xl font-bold">{plan.price}</div>
         {plan.savePercentage && (
-          <p className="text-sm font-medium text-green-600">
+          <p className="text-sm font-medium text-green-500">
             {plan.savePercentage}
           </p>
         )}
         <CardDescription>{plan.description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 flex-1">
         <ul className="text-muted-foreground space-y-2 text-sm">
           {plan.features.map((feature, index) => (
             <li key={index} className="flex items-center gap-2">
@@ -89,14 +76,9 @@ function PricingCard({ plan }: { plan: PricingPlan }) {
         </ul>
       </CardContent>
       <CardFooter>
-        <form
-          action={() => createCheckoutSession(plan.priceId)}
-          className="w-full"
-        >
-          <Button variant={plan.buttonVariant} className="w-full" type="submit">
-            {plan.buttonText}
-          </Button>
-        </form>
+        <Button onClick={() => createCheckoutSession(plan.priceId)} variant={plan.buttonVariant} className="w-full">
+          Choose Plan
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -106,23 +88,15 @@ export default function BillingPage() {
   return (
     <div className="mx-auto flex flex-col space-y-8 px-4 py-12">
       <div className="relative flex items-center justify-center gap-4">
-        <Button
-          className="absolute top-0 left-0"
-          variant="outline"
-          size="icon"
-          asChild
-        >
-          <Link href="/dashboard">
-            <ArrowLeftIcon className="size-4" />
-          </Link>
-        </Button>
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
-            Buy Credits
-          </h1>
-          <p className="text-muted-foreground">
-            Purchase credits to generate more podcast clips. The more credtis
-            you buy, the better the value.
+          <h2 className="text-3xl font-bold mb-4 tracking-tight sm:text-4xl">
+            Flexible Plans for Every Creator
+          </h2>
+          <p className="text-muted-foreground mb-12 max-w-3xl mx-auto text-lg">
+            Simple, transparent pricing. No subscriptions, no hidden fees.
+            Credits never expire, and every new user gets{" "}
+            <span className="font-semibold text-primary">10 free credits</span>{" "}
+            to start!
           </p>
         </div>
       </div>
@@ -133,16 +107,36 @@ export default function BillingPage() {
         ))}
       </div>
 
-      <div className="bg-muted/50 rounded-lg p-6">
-        <h3 className="mb-4 text-lg font-semibold">How credits work</h3>
-        <ul className="text-muted-foreground list-disc space-y-2 pl-5 text-sm">
-          <li>1 clip will cost approximately 2 credits</li>
+      <div className="max-w-3xl mx-auto bg-background rounded-xl shadow-lg p-6 sm:p-8">
+        <h3 className="mb-6 text-2xl font-semibold text-center">
+          How Credits Work
+        </h3>
+        <ul className="text-muted-foreground list-disc space-y-3 pl-5 text-left text-sm sm:text-base">
           <li>
-            The program will create around 1 clip per 5 minutes of podcast
+            Each short clip (between 20 and 60 seconds) costs approximately{" "}
+            <span className="font-semibold text-primary">2 credits</span>.
           </li>
-          <li>Credits never expire and can be used anytime</li>
-          <li>Longer podcasts require more credits based on duration</li>
-          <li>All packages are one-time purchases (not subscription)</li>
+          <li>
+            You choose how many clips (between 1 and 5) to generate per
+            uploaded video. Our AI aims for roughly 1 clip per 5 minutes of
+            content as a guideline.
+          </li>
+          <li>
+            Credits{" "}
+            <span className="font-semibold text-primary">never expire</span>{" "}
+            and can be used anytime you need them.
+          </li>
+          <li>
+            Longer podcasts or requests for more clips per video will
+            consume more credits accordingly.
+          </li>
+          <li>
+            All packages are{" "}
+            <span className="font-semibold text-primary">
+              one-time purchases
+            </span>{" "}
+            – no recurring subscriptions.
+          </li>
         </ul>
       </div>
     </div>

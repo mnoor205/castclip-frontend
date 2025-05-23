@@ -1,3 +1,5 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
+
 "use client"
 import type { Clip as PrismaClip } from "@prisma/client"
 import { Download, Youtube } from "lucide-react"

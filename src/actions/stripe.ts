@@ -4,12 +4,12 @@ import { prismaDB } from "@/lib/prisma"
 import { getUserData } from "./user"
 import Stripe from "stripe"
 import { redirect } from "next/navigation"
+import { PriceId } from "@/lib/types"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: "2025-02-24.acacia",
 })
 
-export type PriceId = "small" | "medium" | "large"
 
 const PRICE_IDS: Record<PriceId, string> = {
     small: process.env.STRIPE_SMALL_CREDIT_PACK!,
