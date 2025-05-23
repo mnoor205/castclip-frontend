@@ -85,8 +85,8 @@ export default function DashboardPage({
             setFiles([])
 
             toast.success("Video Uploaded Successfully", {
-                description: "Your video has been scheduled for processing. Check the status below",
-                duration: 5000
+                description: "Your video has begun processing. Processing may take up to 10 minutes, depending on the length of the video and number of clips requested.",
+                duration: 8000
             })
         } catch (error) {
             console.error(error)
