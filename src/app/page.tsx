@@ -97,13 +97,12 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="text-center mt-10 px-4 py-16 sm:py-24 lg:py-16">
         <h1 className="text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-bold">
-          Create Clips From Your
+          Grow Your Podcast With
           <br />
-          Podcasts <span className="">Instantly</span>
+          Viral TikTok Clips<span className=""> – in Minutes</span>
         </h1>
         <p className="mt-6 text-lg sm:text-xl max-w-xl lg:max-w-2xl mx-auto">
-          Use our state of the art algorithm to generate clips designed to go
-          VIRAL
+          Turn any episode into 1-5 ready-to-post short videos. No editing needed. Just upload, we do the rest.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-2">
           <Link href={user ? "/dashboard" : "/sign-in"}>

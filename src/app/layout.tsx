@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PostHogProvider } from "./providers";
+import { constructMetadata } from "@/lib/utils"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,10 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "AI Podcast Clipper",
-  description: "Create Clips from Podcasts using AI",
-};
+export const metadata = constructMetadata()
 
 export default function RootLayout({
   children,
