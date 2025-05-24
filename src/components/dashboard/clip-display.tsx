@@ -43,6 +43,7 @@ function ClipCard({ clip }: { clip: Clip }) {
                 <video
                     src={`https://castclip.revolt-ai.com/${clip.s3Key}`}
                     controls
+                    ref={videoRef}
                     preload="metadata"
                     className="h-full w-full rounded-md object-cover"
                 />

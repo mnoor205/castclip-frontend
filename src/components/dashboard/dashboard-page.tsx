@@ -85,8 +85,8 @@ export default function DashboardPage({
             setFiles([])
 
             toast.success("Video Uploaded Successfully", {
-                description: "Your video has been scheduled for processing. Check the status below",
-                duration: 5000
+                description: "Your video has begun processing. Processing may take up to 15 minutes, depending on the length of the video and number of clips requested.",
+                duration: 8000
             })
         } catch (error) {
             console.error(error)
@@ -139,7 +139,7 @@ export default function DashboardPage({
                             <Dropzone
                                 onDrop={handleDrop}
                                 accept={{ "video/mp4": [".mp4"] }}
-                                maxSize={500 * 1024 * 1024}
+                                maxSize={2000 * 1024 * 1024}
                                 maxFiles={1}
                                 disabled={uploading}
                             >
@@ -148,7 +148,7 @@ export default function DashboardPage({
                                         <UploadCloud className="text-muted-foreground h-12 w-12" />
                                         <p className="font-medium">Drag and drop your file</p>
                                         <p className="text-muted-foreground text-sm">
-                                            or click to browse [MP4 up to 500MB]
+                                            or click to browse [MP4 up to 2GB]
                                         </p>
                                         <Button variant="default" size="sm" disabled={uploading}>
                                             Select File
