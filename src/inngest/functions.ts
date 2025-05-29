@@ -1,6 +1,7 @@
 import { prismaDB } from "@/lib/prisma";
 import { inngest } from "./client";
 import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
+import { sendMail } from "@/lib/send-mail";
 
 export const processVideo = inngest.createFunction(
   {
@@ -16,7 +17,7 @@ export const processVideo = inngest.createFunction(
     const { uploadedFileId, clipCount } = event.data
 
     try {
-      const { userId, credits, s3Key } = await step.run("check-credits", async () => {
+      const { userId, credits, email, name, s3Key } = await step.run("check-credits", async () => {
         const uploadedFile = await prismaDB.uploadedFile.findUniqueOrThrow({
           where: {
             id: uploadedFileId
@@ -26,6 +27,8 @@ export const processVideo = inngest.createFunction(
               select: {
                 id: true,
                 credits: true,
+                email: true,
+                name: true
               }
             },
             s3Key: true,
@@ -35,6 +38,8 @@ export const processVideo = inngest.createFunction(
         return {
           userId: uploadedFile.user.id,
           credits: uploadedFile.user.credits,
+          email: uploadedFile.user.email,
+          name: uploadedFile.user.name,
           s3Key: uploadedFile.s3Key
         }
       })
@@ -108,6 +113,15 @@ export const processVideo = inngest.createFunction(
             data: {
               status: "processed"
             }
+          })
+        })
+
+        await step.run("send-email", async () => {
+          await sendMail({
+            to: email,
+            subject: "Your Clips Are Ready!",
+            text: "Hi! Your video clips have been generated. Go to your dashboard to view and download them.",
+            html: `<p>Hi ${name}!</p><p>Your video clips have been generated. Go to your <a href="https://castclip.app/dashboard">dashboard</a> to view and download them.</p>`
           })
         })
       } else {
