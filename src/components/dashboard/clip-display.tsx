@@ -1,7 +1,7 @@
 "use client"
 import type { Clip as PrismaClip } from "@prisma/client"
 import { Download, Youtube } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "../ui/button"
 import Link from "next/link"
 
@@ -11,6 +11,7 @@ interface Clip extends PrismaClip {
 
 function ClipCard({ clip }: { clip: Clip }) {
     const videoRef = useRef<HTMLVideoElement | null>(null)
+    const [isDownloading, setIsDownloading] = useState(false)
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -36,6 +37,38 @@ function ClipCard({ clip }: { clip: Clip }) {
         }
     }, [])
 
+    const handleDownload = async () => {
+        setIsDownloading(true)
+        try {
+            const videoUrl = `https://castclip.revolt-ai.com/${clip.s3Key}`
+            
+            // Try to fetch the video and create a blob for download
+            const response = await fetch(videoUrl)
+            if (!response.ok) throw new Error('Failed to fetch video')
+            
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            
+            // Create a temporary anchor element for download
+            const a = document.createElement('a')
+            a.style.display = 'none'
+            a.href = url
+            a.download = `clip-${clip.id}.mp4`
+            
+            document.body.appendChild(a)
+            a.click()
+            
+            // Clean up
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+        } catch (error) {
+            console.error('Download failed:', error)
+            // Fallback: open in new tab
+            window.open(`https://castclip.revolt-ai.com/${clip.s3Key}`, '_blank')
+        } finally {
+            setIsDownloading(false)
+        }
+    }
 
     return (
         <div className="flex max-w-52 flex-col gap-2">
@@ -56,12 +89,17 @@ function ClipCard({ clip }: { clip: Clip }) {
                     </Button>
                 </Link>
             ) : (
-                <Link className="flex flex-col gap-2" href={`https://castclip.revolt-ai.com/${clip.s3Key}`}>
-                    <Button variant="outline" size="sm">
+                <div className="flex flex-col gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleDownload}
+                        disabled={isDownloading}
+                    >
                         <Download className="mr-1.5 h-4 w-4" />
-                        Download
+                        {isDownloading ? 'Downloading...' : 'Download'}
                     </Button>
-                </Link>
+                </div>
             )}
         </div>
     )

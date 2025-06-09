@@ -5,7 +5,7 @@ import { Button } from "../ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import Dropzone from "shadcn-dropzone"
-import { Loader2, UploadCloud } from "lucide-react"
+import { Loader2, UploadCloud, CheckCircle2, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { generateUploadUrl } from "@/actions/s3"
 import { toast } from "sonner"
@@ -15,6 +15,44 @@ import { Badge } from "../ui/badge"
 import { useRouter } from "next/navigation"
 import { ClipDisplay } from "./clip-display"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import Image from "next/image"
+
+type VideoType = {
+    id: number
+    title: string
+    description: string
+    exampleVideoUrl: string
+    status?: 'beta' | 'coming-soon'
+}
+
+const VIDEO_TYPES: VideoType[] = [
+    {
+        id: 1,
+        title: "Classic Captions",
+        description: "Clean, readable subtitles for a professional look.",
+        exampleVideoUrl: "https://castclip.revolt-ai.com/app/examples/subtitles/default.gif",
+    },
+    {
+        id: 2,
+        title: "Emoji Captions",
+        description: "Engaging captions with relevant emojis that animate.",
+        exampleVideoUrl: "https://castclip.revolt-ai.com/app/examples/subtitles/emoji.gif",
+        status: 'beta'
+    },
+    {
+        id: 3,
+        title: "Karaoke Style",
+        description: "Words are highlighted as they are spoken, like karaoke.",
+        exampleVideoUrl: "https://castclip.revolt-ai.com/app/examples/subtitles/karaoke.gif",
+    },
+    {
+        id: 4,
+        title: "More Styles Coming Soon",
+        description: "We're always working on new and exciting caption styles.",
+        exampleVideoUrl: "",
+        status: 'coming-soon'
+    }
+]
 
 export default function DashboardPage({
     uploadedFiles,
@@ -36,6 +74,7 @@ export default function DashboardPage({
     const [uploading, setUploading] = useState(false)
     const [refreshing, setRefreshing] = useState<boolean>(false)
     const [clipCount, setClipCount] = useState<number>(1)
+    const [captionStyle, setCaptionStyle] = useState<number>(1)
     const router = useRouter()
 
     const handleRefresh = async () => {
@@ -46,6 +85,10 @@ export default function DashboardPage({
 
     const handleDrop = (acceptedFiles: File[]) => {
         setFiles(acceptedFiles)
+    }
+
+    const handleVideoTypeSelect = (typeId: number) => {
+        setCaptionStyle(typeId)
     }
 
     const handleUpload = async () => {
@@ -65,7 +108,8 @@ export default function DashboardPage({
             const { success, signedUrl, uploadedFileId } = await generateUploadUrl({
                 fileName: file.name,
                 contentType: file.type,
-                clipCount: clipCount
+                clipCount: clipCount,
+                captionStyle: captionStyle
             })
 
             if (!success) throw new Error("Failed to get upload URL")
@@ -80,7 +124,7 @@ export default function DashboardPage({
 
             if (!uploadResponse.ok) throw new Error(`Upload failed with status: ${uploadResponse.status}`)
 
-            await processVideo(uploadedFileId, clipCount)
+            await processVideo(uploadedFileId, clipCount, captionStyle)
 
             setFiles([])
 
@@ -104,7 +148,7 @@ export default function DashboardPage({
     }
 
     return (
-        <div className="mx-auto flex max-w-5xl flex-col space-y-6 px-4 py-8">
+        <div className="mx-auto flex max-w-6xl flex-col space-y-6 px-4 py-8">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">
@@ -125,54 +169,133 @@ export default function DashboardPage({
                 <TabsList>
                     <TabsTrigger value="upload">Upload</TabsTrigger>
                     <TabsTrigger value="my-clips">My Clips</TabsTrigger>
+                    <TabsTrigger value="queue">Queue Status</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="upload">
+                <TabsContent value="upload" className="space-y-6">
+                    {/* Upload & Styling Section */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Upload Podcast</CardTitle>
+                            <CardTitle>Upload & Style Your Podcast</CardTitle>
                             <CardDescription>
-                                Upload your audio or video to generate clips
+                                Upload your audio or video and choose a caption style for your clips
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <Dropzone
-                                onDrop={handleDrop}
-                                accept={{ "video/mp4": [".mp4"] }}
-                                maxSize={2000 * 1024 * 1024}
-                                maxFiles={1}
-                                disabled={uploading}
-                            >
-                                {() => (
-                                    <div className="flex flex-col items-center justify-center space-y-4 rounded-lg p-10 text-center">
-                                        <UploadCloud className="text-muted-foreground h-12 w-12" />
-                                        <p className="font-medium">Drag and drop your file</p>
-                                        <p className="text-muted-foreground text-sm">
-                                            or click to browse [MP4 up to 2GB]
-                                        </p>
-                                        <Button variant="default" size="sm" disabled={uploading}>
-                                            Select File
-                                        </Button>
-                                    </div>
-                                )}
-                            </Dropzone>
-
-                            <div className="mt-2 flex items-start justify-between">
-                                <div>
-                                    {files.length > 0 && (
-                                        <div className="space-y-1 text-sm">
-                                            <p className="font-medium">Selected Files:</p>
-                                            {files.map((file) => (
-                                                <p key={file.name} className="text-muted-foreground">
-                                                    {file.name}
-                                                </p>
-                                            ))}
+                        <CardContent className="space-y-6">
+                            {/* Upload Dropzone */}
+                            <div>
+                                <h3 className="text-lg font-medium mb-3">Upload Your File</h3>
+                                <Dropzone
+                                    onDrop={handleDrop}
+                                    accept={{ "video/mp4": [".mp4"] }}
+                                    maxSize={2000 * 1024 * 1024}
+                                    maxFiles={1}
+                                    disabled={uploading}
+                                >
+                                    {() => (
+                                        <div className="flex flex-col items-center justify-center space-y-4 rounded-lg p-10 text-center">
+                                            <UploadCloud className="text-muted-foreground h-12 w-12" />
+                                            <p className="font-medium">Drag and drop your file</p>
+                                            <p className="text-muted-foreground text-sm">
+                                                or click to browse [MP4 up to 2GB]
+                                            </p>
+                                            <Button variant="default" size="sm" disabled={uploading}>
+                                                Select File
+                                            </Button>
                                         </div>
                                     )}
+                                </Dropzone>
+
+                                {files.length > 0 && (
+                                    <div className="mt-3 space-y-1 text-sm">
+                                        <p className="font-medium">Selected Files:</p>
+                                        {files.map((file) => (
+                                            <p key={file.name} className="text-muted-foreground">
+                                                {file.name}
+                                            </p>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Video Type Selection */}
+                            <div>
+                                <h3 className="text-lg font-medium mb-3">Choose Your Caption Style</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {VIDEO_TYPES.map((type) => {
+                                        const isComingSoon = type.status === 'coming-soon'
+                                        const isSelected = captionStyle === type.id
+
+                                        return (
+                                            <div
+                                                key={type.id}
+                                                className={`group relative rounded-xl border-2 transition-all duration-200 ${
+                                                    isComingSoon
+                                                        ? 'cursor-not-allowed bg-muted/40'
+                                                        : 'cursor-pointer hover:shadow-lg'
+                                                } ${
+                                                    isSelected && !isComingSoon
+                                                        ? "border-primary bg-primary/5 shadow-md"
+                                                        : "border-border hover:border-primary/50"
+                                                }`}
+                                                onClick={() => !isComingSoon && handleVideoTypeSelect(type.id)}
+                                            >
+                                                {/* Selection Indicator */}
+                                                {isSelected && !isComingSoon && (
+                                                    <div className="absolute -top-2 -right-2 z-10">
+                                                        <div className="bg-primary rounded-full p-1">
+                                                            <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Beta Badge */}
+                                                {type.status === 'beta' && (
+                                                    <div className="absolute top-2 left-2 z-10">
+                                                        <Badge variant="default" className="bg-yellow-400 text-yellow-900 border border-yellow-500/50">
+                                                            Beta
+                                                        </Badge>
+                                                    </div>
+                                                )}
+
+                                                {/* Video Preview or Coming Soon */}
+                                                <div className="relative aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
+                                                    {isComingSoon ? (
+                                                        <div className="flex h-full w-full items-center justify-center">
+                                                            <Sparkles className="h-10 w-10 text-muted-foreground/50" />
+                                                        </div>
+                                                    ) : (
+                                                        <Image
+                                                            className="h-full w-full object-cover"
+                                                            src={type.exampleVideoUrl}
+                                                            alt={`${type.title} preview`}
+                                                            width={400}
+                                                            height={225}
+                                                            key={type.exampleVideoUrl}
+                                                            unoptimized
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                {/* Content */}
+                                                <div className="p-4">
+                                                    <h3 className="font-semibold text-sm mb-2">{type.title}</h3>
+                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                        {type.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
                                 </div>
+                            </div>
+
+                            {/* Upload Controls */}
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t">
                                 <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">Number of clips:</span>
                                     <Select onValueChange={(value) => handleClipCountChange(Number(value))}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="w-20">
                                             <SelectValue placeholder={clipCount} defaultValue={clipCount} />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -183,83 +306,100 @@ export default function DashboardPage({
                                             <SelectItem value="5">5</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <Button onClick={handleUpload} disabled={files.length === 0 || uploading}>
-                                        {uploading ? (
-                                            <>
-                                                <Loader2 className="mr-2 m-4 h-4 animate-spin" />
-                                                Uploading...
-                                            </>
-                                        ) : (
-                                            "Upload and Generate Clips"
-                                        )}
-                                    </Button>
                                 </div>
+                                <Button onClick={handleUpload} disabled={files.length === 0 || uploading} size="lg">
+                                    {uploading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Uploading...
+                                        </>
+                                    ) : (
+                                        "Upload and Generate Clips"
+                                    )}
+                                </Button>
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-                            {uploadedFiles.length > 0 && (
-                                <div className="pt-6">
-                                    <div className="mb-2 flex items-center justify-between">
-                                        <h3 className="text-md mb-2 font-medium">Queue Status</h3>
-                                        <Button variant={"outline"} size={"sm"} onClick={handleRefresh} disabled={refreshing}>
-                                            {refreshing && (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            )}
-                                            Refresh
-                                        </Button>
-                                    </div>
-
-                                    <div className="max-h-[300px] overflow-auto rounded-md border">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>File</TableHead>
-                                                    <TableHead>Uploaded</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead>Clip Created</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {[...uploadedFiles]
-                                                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                                                    .map((item) => (
-                                                        <TableRow key={item.id}>
-                                                            <TableCell className="max-w-xs truncate font-medium">
-                                                                {item.fileName}
-                                                            </TableCell>
-                                                            <TableCell className="text-muted-foreground font-sm">
-                                                                {new Date(item.createdAt).toLocaleString()}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {item.status === "queued" && (
-                                                                    <Badge className="bg-blue-500 text-white">Queued</Badge>
-                                                                )}
-                                                                {item.status === "processing" && (
-                                                                    <Badge className="bg-yellow-500 text-white">Processing</Badge>
-                                                                )}
-                                                                {item.status === "processed" && (
-                                                                    <Badge className="bg-green-500 text-white">Processed</Badge>
-                                                                )}
-                                                                {item.status === "failed" && (
-                                                                    <Badge className="bg-red-500 text-white">Failed</Badge>
-                                                                )}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                {item.clipsCount > 0 ? (
-                                                                    <span>{item.clipsCount} clip{item.clipsCount !== 1 ? "s" : ""}</span>
-                                                                ) : (
-                                                                    <span className="text-muted-foreground">No Clips Yet</span>
-                                                                )}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                            </TableBody>
-                                        </Table>
+                <TabsContent value="queue">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Processing Queue</CardTitle>
+                                    <CardDescription>Track the progress of your uploaded videos and processing status</CardDescription>
+                                </div>
+                                <Button variant={"outline"} size={"sm"} onClick={handleRefresh} disabled={refreshing}>
+                                    {refreshing && (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    )}
+                                    Refresh
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {uploadedFiles.length > 0 ? (
+                                <div className="max-h-[400px] overflow-auto rounded-md border">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>File</TableHead>
+                                                <TableHead>Uploaded</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>Clips Created</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {[...uploadedFiles]
+                                                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                                .map((item) => (
+                                                    <TableRow key={item.id}>
+                                                        <TableCell className="max-w-xs truncate font-medium">
+                                                            {item.fileName}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground font-sm">
+                                                            {new Date(item.createdAt).toLocaleString()}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {item.status === "queued" && (
+                                                                <Badge className="bg-blue-500 text-white">Queued</Badge>
+                                                            )}
+                                                            {item.status === "processing" && (
+                                                                <Badge className="bg-yellow-500 text-white">Processing</Badge>
+                                                            )}
+                                                            {item.status === "processed" && (
+                                                                <Badge className="bg-green-500 text-white">Processed</Badge>
+                                                            )}
+                                                            {item.status === "failed" && (
+                                                                <Badge className="bg-red-500 text-white">Failed</Badge>
+                                                            )}
+                                                            {item.status === "no credits" && (
+                                                                <Badge className="bg-orange-500 text-white">No Credits</Badge>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {item.clipsCount > 0 ? (
+                                                                <span>{item.clipsCount} clip{item.clipsCount !== 1 ? "s" : ""}</span>
+                                                            ) : (
+                                                                <span className="text-muted-foreground">No Clips Yet</span>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <div className="text-muted-foreground">
+                                        <p className="text-lg font-medium mb-2">No uploads yet</p>
+                                        <p className="text-sm">Upload your first podcast to see processing status here</p>
                                     </div>
                                 </div>
                             )}
                         </CardContent>
                     </Card>
-
                 </TabsContent>
 
                 <TabsContent value="my-clips">

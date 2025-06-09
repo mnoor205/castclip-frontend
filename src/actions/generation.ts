@@ -4,7 +4,7 @@ import { inngest } from "@/inngest/client"
 import { prismaDB } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
-export async function processVideo(uploadedFileId: string, clipCount: number) {
+export async function processVideo(uploadedFileId: string, clipCount: number, captionStyle: number) {
     const uploadedVideo = await prismaDB.uploadedFile.findUniqueOrThrow({
         where: {
             id: uploadedFileId
@@ -20,7 +20,7 @@ export async function processVideo(uploadedFileId: string, clipCount: number) {
 
     await inngest.send({
         name: "process-video-events",
-        data: { uploadedFileId: uploadedVideo.id, userId: uploadedVideo.userId, clipCount:clipCount }
+        data: { uploadedFileId: uploadedVideo.id, clipCount:clipCount, captionStyle: captionStyle }
     })
 
     await prismaDB.uploadedFile.update({

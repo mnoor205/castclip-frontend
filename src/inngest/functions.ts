@@ -6,7 +6,7 @@ import { sendMail } from "@/lib/send-mail";
 export const processVideo = inngest.createFunction(
   {
     id: "process-video",
-    retries: 1, // retries 2 times
+    retries: 1, // Tries 2 times
     concurrency: {
       limit: 1,
       key: "event.data.userId"
@@ -14,7 +14,7 @@ export const processVideo = inngest.createFunction(
   },
   { event: "process-video-events" },
   async ({ event, step }) => {
-    const { uploadedFileId, clipCount } = event.data
+    const { uploadedFileId, clipCount, captionStyle } = event.data
 
     try {
       const { userId, credits, email, name, s3Key } = await step.run("check-credits", async () => {
@@ -59,13 +59,21 @@ export const processVideo = inngest.createFunction(
           })
         })
 
-        await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
+        await step.run("process-video-external", async () => {
+          const response = await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
             method: "POST",
-            body: JSON.stringify({ s3_key: s3Key, clip_count: affordableClipCount }),
+            body: JSON.stringify({ s3_key: s3Key, clip_count: affordableClipCount, style: captionStyle }),
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`
             }
+          })
+          
+          if (!response.ok) {
+            throw new Error(`Video processing failed with status: ${response.status}`)
+          }
+          
+          return response
         })
 
         const { clipsFound } = await step.run("create-clips-in-db", async () => {
@@ -93,13 +101,15 @@ export const processVideo = inngest.createFunction(
         })
 
         await step.run("deduct-credits", async () => {
+          // Only deduct credits for clips that were actually created
+          const creditsToDeduct = Math.min(clipsFound, affordableClipCount) * 2
           await prismaDB.user.update({
             where: {
               id: userId
             },
             data: {
               credits: {
-                decrement: clipsFound * 2
+                decrement: creditsToDeduct
               }
             }
           })
@@ -116,14 +126,23 @@ export const processVideo = inngest.createFunction(
           })
         })
 
-        await step.run("send-email", async () => {
-          await sendMail({
-            to: email,
-            subject: "Your Clips Are Ready!",
-            text: "Hi! Your video clips have been generated. Go to your dashboard to view and download them.",
-            html: `<p>Hi ${name}!</p><p>Your video clips have been generated. Go to your <a href="https://castclip.app/dashboard">dashboard</a> to view and download them.</p>`
-          })
+        // Send email notification in a separate, non-blocking step
+        await step.run("send-email-notification", async () => {
+          try {
+            await inngest.send({
+              name: "send-notification-email",
+              data: {
+                email,
+                name,
+                clipsCount: clipsFound
+              }
+            })
+          } catch (error) {
+            // Log the error but don't throw it - email failure shouldn't affect video processing status
+            console.error("Failed to trigger email notification:", error)
+          }
         })
+
       } else {
         await step.run("set-status-no-credits", async () => {
           await prismaDB.uploadedFile.update({
@@ -137,7 +156,8 @@ export const processVideo = inngest.createFunction(
         })
       }
     } catch (error) {
-      console.error(error)
+      console.error("Video processing failed:", error)
+      await step.run("set-status-failed", async () => {
       await prismaDB.uploadedFile.update({
         where: {
           id: uploadedFileId,
@@ -145,11 +165,31 @@ export const processVideo = inngest.createFunction(
         data: {
           status: "failed"
         }
+        })
       })
     }
   },
 );
 
+export const sendNotificationEmail = inngest.createFunction(
+  {
+    id: "send-notification-email",
+    retries: 1, // Try email sending up to 2 times
+  },
+  { event: "send-notification-email" },
+  async ({ event, step }) => {
+    const { email, name, clipsCount } = event.data
+
+    await step.run("send-email", async () => {
+      await sendMail({
+        to: email,
+        subject: "Your Clips Are Ready!",
+        text: `Hi! Your ${clipsCount} video clip${clipsCount !== 1 ? 's have' : ' has'} been generated. Go to your dashboard to view and download them.`,
+        html: `<p>Hi ${name}!</p><p>Your ${clipsCount} video clip${clipsCount !== 1 ? 's have' : ' has'} been generated. Go to your <a href="https://castclip.app/dashboard">dashboard</a> to view and download them.</p>`
+      })
+    })
+  }
+);
 
 async function lists3ObjectsByPrefix(prefix: string) {
   const s3Client = new S3Client({
@@ -162,7 +202,7 @@ async function lists3ObjectsByPrefix(prefix: string) {
   })
 
   const listCommand = new ListObjectsV2Command({
-    Bucket: process.env.R2_BUCKET_NAME,
+    Bucket: process.env.R2_BUCKET_NAME!,
     Prefix: prefix
   })
 
