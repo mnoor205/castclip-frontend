@@ -1,6 +1,5 @@
 "use client"
 import { Clip } from "@prisma/client"
-import Link from "next/link"
 import { Button } from "../ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
@@ -149,21 +148,6 @@ export default function DashboardPage({
 
     return (
         <div className="mx-auto flex max-w-6xl flex-col space-y-6 px-4 py-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Podcast Clipper
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Upload your podcast and get AI-generated clips instantly
-                    </p>
-                </div>
-                <Link href="/dashboard/billing">
-                    <Button>
-                        Buy Credits
-                    </Button>
-                </Link>
-            </div>
 
             <Tabs defaultValue="upload">
                 <TabsList>
@@ -199,7 +183,7 @@ export default function DashboardPage({
                                             <p className="text-muted-foreground text-sm">
                                                 or click to browse [MP4 up to 2GB]
                                             </p>
-                                            <Button variant="default" size="sm" disabled={uploading}>
+                                            <Button size="sm" disabled={uploading} className="bg-gradient-primary text-white hover:opacity-90 transition-opacity">
                                                 Select File
                                             </Button>
                                         </div>
@@ -304,10 +288,13 @@ export default function DashboardPage({
                                             <SelectItem value="3">3</SelectItem>
                                             <SelectItem value="4">4</SelectItem>
                                             <SelectItem value="5">5</SelectItem>
+                                            <SelectItem value="6">6</SelectItem>
+                                            <SelectItem value="7">7</SelectItem>
+                                            <SelectItem value="8">8</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <Button onClick={handleUpload} disabled={files.length === 0 || uploading} size="lg">
+                                <Button onClick={handleUpload} disabled={files.length === 0 || uploading} size="lg" className="bg-gradient-primary text-white hover:opacity-90 transition-opacity">
                                     {uploading ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -330,7 +317,7 @@ export default function DashboardPage({
                                     <CardTitle>Processing Queue</CardTitle>
                                     <CardDescription>Track the progress of your uploaded videos and processing status</CardDescription>
                                 </div>
-                                <Button variant={"outline"} size={"sm"} onClick={handleRefresh} disabled={refreshing}>
+                                <Button size="sm" onClick={handleRefresh} disabled={refreshing} className="bg-gradient-primary text-white hover:opacity-90 transition-opacity">
                                     {refreshing && (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     )}

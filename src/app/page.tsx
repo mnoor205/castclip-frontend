@@ -1,17 +1,24 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import { getUserData } from "@/actions/user";
-import { DashboardFrame } from "@/components/landing/frame";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight,
   UploadCloud,
   Sparkles,
   Download,
+  Play,
+  Clock,
+  Check,
+  Zap,
+  Target,
+  BarChart,
+  ChevronDown,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { ClipDisplay } from "@/components/dashboard/clip-display";
-import BillingPage from "./dashboard/billing/page";
+import PricingSection from "@/components/pricing/pricing-section";
 
 export default async function Home() {
   const user = await getUserData();
@@ -19,7 +26,7 @@ export default async function Home() {
   const demoClips = [
     {
       id: "1",
-      s3Key: "app/hormozi.mp4",
+      s3Key: "app/examples/demo/clip_1.mp4",
       title: "Demo Clip 1",
       createdAt: new Date(),
       userId: "demoUser",
@@ -27,11 +34,11 @@ export default async function Home() {
       transcript: "",
       customInstructions: "",
       uploadedFileId: "demoFile1",
-      youtubeUrl: "https://www.youtube.com/watch?v=-UzJOk85OZI",
+      youtubeUrl: "https://www.youtube.com/watch?v=q-_hwD1jNK4",
     },
     {
       id: "2",
-      s3Key: "app/rogan.mp4",
+      s3Key: "app/examples/demo/clip_2.mp4",
       title: "Demo Clip 2",
       createdAt: new Date(),
       userId: "demoUser",
@@ -39,11 +46,11 @@ export default async function Home() {
       transcript: "",
       customInstructions: "",
       uploadedFileId: "demoFile2",
-      youtubeUrl: "https://www.youtube.com/watch?v=r63cwSWbFME",
+      youtubeUrl: "https://www.youtube.com/watch?v=0cn3VBjfN8g",
     },
     {
       id: "3",
-      s3Key: "app/weekend.mp4",
+      s3Key: "app/examples/demo/clip_3.mp4",
       title: "Demo Clip 3",
       createdAt: new Date(),
       userId: "demoUser",
@@ -51,183 +58,533 @@ export default async function Home() {
       transcript: "",
       customInstructions: "",
       uploadedFileId: "demoFile3",
-      youtubeUrl: "https://www.youtube.com/watch?v=PnmPmDznqnU",
+      youtubeUrl: "https://www.youtube.com/watch?v=19aKbciNKdA&t=1671s",
+    },
+    // {
+    //   id: "4",
+    //   s3Key: "app/shetty.mp4",
+    //   title: "Demo Clip 4",
+    //   createdAt: new Date(),
+    //   userId: "demoUser",
+    //   processingStatus: "processed",
+    //   transcript: "",
+    //   customInstructions: "",
+    //   uploadedFileId: "demoFile4",
+    //   youtubeUrl: "https://www.youtube.com/watch?v=cLTUA1lneS0",
+    // },
+  ];
+
+  // const testimonials = [
+  //   {
+  //     name: "Sarah Chen",
+  //     title: "Podcast Host, Tech Talks",
+  //     avatar: "SC",
+  //     content: "CastClip transformed my podcast growth strategy. I went from 0 to 50K TikTok followers in just 3 months!",
+  //     rating: 5,
+  //   },
+  //   {
+  //     name: "Marcus Rodriguez",
+  //     title: "Business Podcast Network",
+  //     avatar: "MR",
+  //     content: "The AI is incredibly accurate at finding the best moments. Saves me 10+ hours per week of editing.",
+  //     rating: 5,
+  //   },
+  //   {
+  //     name: "Jennifer Kim",
+  //     title: "Wellness Podcast Creator",
+  //     avatar: "JK",
+  //     content: "My clips now get 100x more engagement than before. The viral moments it finds are spot-on.",
+  //     rating: 5,
+  //   },
+  // ];
+
+  const features = [
+    {
+      icon: <Zap className="h-6 w-6" />,
+      title: "AI-Powered Clip Generation",
+      description: "Advanced AI analyzes your content and identifies the most engaging, viral-worthy moments automatically.",
     },
     {
-      id: "4",
-      s3Key: "app/shetty.mp4",
-      title: "Demo Clip 4",
-      createdAt: new Date(),
-      userId: "demoUser",
-      processingStatus: "processed",
-      transcript: "",
-      customInstructions: "",
-      uploadedFileId: "demoFile4",
-      youtubeUrl: "https://www.youtube.com/watch?v=cLTUA1lneS0",
+      icon: <Target className="h-6 w-6" />,
+      title: "Viral Moment Detection",
+      description: "Our AI understands what makes content go viral and finds those exact moments in your podcasts.",
+    },
+    {
+      icon: <Clock className="h-6 w-6" />,
+      title: "10x Faster Than Manual Editing",
+      description: "What takes hours of manual editing is done in minutes. More time creating, less time editing.",
+    },
+    {
+      icon: <BarChart className="h-6 w-6" />,
+      title: "Optimized for All Platforms",
+      description: "Clips are automatically formatted for TikTok, Instagram Reels, YouTube Shorts, and more.",
+    },
+  ];
+
+  const stats = [
+    { number: "1000+", label: "Clips Generated" },
+    { number: "10+", label: "Podcasters" },
+    { number: "500%", label: "Avg. Growth" },
+    { number: "95%", label: "Satisfaction Rate" },
+  ];
+
+  const faqs = [
+    {
+      question: "How does the AI know which moments are viral?",
+      answer: "Our AI is trained on millions of viral short-form videos and understands patterns like emotional peaks, surprising statements, actionable advice, and engaging storytelling that drive engagement.",
+    },
+    {
+      question: "How do credits work?",
+      answer: "Each short clip (20-60 seconds) costs approximately 2 credits. You can generate 1-5 clips per upload, with our AI typically creating 1 clip per 5 minutes of content. Credits never expire and all packages are one-time purchases with no subscriptions.",
+    },
+    {
+      question: "What formats do you support?",
+      answer: "We currently support MP4 video files up to 2GB in size. Simply upload your podcast episode or video content directly from your computer.",
+    },
+    {
+      question: "How long does it take to process a podcast?",
+      answer: "Most podcasts are processed within 5-15 minutes depending on length. You'll receive an email notification when your clips are ready.",
+    },
+    {
+      question: "Can I customize the clips?",
+      answer: "Yes! You can provide custom instructions to guide the AI, adjust clip length, add your own branding, and select specific segments to focus on.",
+    },
+    {
+      question: "What's included in the free plan?",
+      answer: "Every new user gets 5 free credits to generate clips from their podcasts. Each credit processes about 30 minutes of content and can generate multiple clips.",
+    },
+    {
+      question: "Do credits expire?",
+      answer: "No! Credits never expire and can be used anytime. All our packages are one-time purchases with no recurring subscriptions or hidden fees.",
     },
   ];
 
   return (
-    <main className="min-h-screen">
-      <header className="flex justify-between items-center px-4 sm:px-6 md:px-12 py-4 sticky top-0 bg-background/80 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-2 text-xl font-semibold">
-          CastClip
+    <main className="min-h-screen bg-gradient-to-br from-pink-50 via-transparent to-orange-50">
+      {/* Header */}
+      <header className="flex justify-between items-center px-4 sm:px-6 md:px-12 py-3 sticky top-0 bg-transparent backdrop-blur-md z-50 border-b border-white/20 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-xl font-bold text-gradient-primary">CastClip</span>
         </div>
-        <nav className="hidden md:flex gap-6 text-sm font-medium">
-          <Link href="#demo">Demo</Link>
-          <Link href="#pricing">Pricing</Link>
+        <nav className="hidden md:flex gap-8 text-sm font-medium">
+          <Link href="#features" className="hover:text-primary transition-colors">Features</Link>
+          <Link href="#demo" className="hover:text-primary transition-colors">Demo</Link>
+          <Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link>
+          <Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link>
         </nav>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {user ? (
             <Link href="/dashboard">
-              <Button variant="secondary" className="text-sm font-semibold">
+              <Button variant="outline" className="font-medium px-4 py-2">
                 Dashboard
               </Button>
             </Link>
           ) : (
-            <Link href="/sign-in">
-              <Button variant="secondary" className="text-sm font-semibold">
-                Sign In
-              </Button>
-            </Link>
+            <>
+              <Link href="/sign-in">
+                <Button variant="ghost" className="font-medium px-3 py-2 text-sm">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/sign-in">
+                <Button className="font-medium px-4 py-2 bg-gradient-primary hover:opacity-90 text-white border-0 text-sm">
+                  Get Started
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="text-center mt-10 px-4 py-16 sm:py-24 lg:py-16">
-        <h1 className="text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-bold">
-          Grow Your Podcast With
-          <br />
-          Viral TikTok Clips<span className=""> – in Minutes</span>
-        </h1>
-        <p className="mt-6 text-lg sm:text-xl max-w-xl lg:max-w-2xl mx-auto">
-          Turn any episode into 1-5 ready-to-post short videos. No editing needed. Just upload, we do the rest.
-        </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-2">
-          <Link href={user ? "/dashboard" : "/sign-in"}>
-            <Button
-              variant="default"
-              className="text-base font-semibold inline-flex items-center px-8 py-6"
-              size="lg"
-            >
-              Get Started Free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-          <p className="text-sm text-muted-foreground mt-2">
-            Get 10 free credits when you sign up!
+      <section className="relative px-4 py-20 sm:py-32 lg:py-24 overflow-hidden">
+        <div className="absolute inset-0" />
+        <div className="relative max-w-7xl mx-auto text-center">
+          <div className="flex justify-center mb-6">
+            <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Join 10+ successful podcasters
+            </Badge>
+          </div>
+          
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6">
+            Turn Your Podcast Into
+            <br />
+            <span className="text-gradient-primary">
+              Viral TikTok Clips
+            </span>
+          </h1>
+          
+          <p className="text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
+            Our AI finds the most engaging moments in your podcast and creates ready-to-post clips in minutes. 
+            <strong className="text-foreground"> No editing skills required.</strong>
           </p>
-        </div>
-      </section>
 
-      {/* Dashboard Preview */}
-      <div className="max-w-6xl mx-auto my-4 px-4 sm:px-6 lg:px-8">
-        <DashboardFrame>
-          <Image
-            src="https://castclip.revolt-ai.com/app/dashboard.png"
-            width={2211}
-            height={1150}
-            alt="Dashboard"
-            className="w-full h-72 object-cover rounded-md sm:h-auto sm:rounded-md"
-          />
-        </DashboardFrame>
-      </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            <Link href={user ? "/dashboard" : "/sign-in"}>
+              <Button size="lg" className="text-lg font-semibold px-6 py-3 h-auto bg-gradient-primary hover:opacity-90 text-white border-0">
+                Start Creating Clips Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Check className="h-4 w-4 text-green-500" />
+              5 free clips • No credit card required
+            </div>
+          </div>
 
-      {/* How It Works Section */}
-      <section className="px-4 py-16 sm:py-24 lg:py-16 bg-muted/30">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4 tracking-tight sm:text-4xl">
-            How It Works
-          </h2>
-          <p className="text-muted-foreground mb-12 max-w-2xl mx-auto text-lg">
-            Transforming your long-form content into engaging, shareable clips
-            is simple and fast. Here&apos;s our straightforward three-step process:
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center p-6 bg-background rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="bg-primary/10 p-3 rounded-full mb-4">
-                <UploadCloud className="h-8 w-8 text-primary" />
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-gradient-primary mb-2">{stat.number}</div>
+                <div className="text-sm text-muted-foreground">{stat.label}</div>
               </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Step 1: Upload Podcast
-              </h3>
-              <p className="text-sm text-muted-foreground text-center">
-                Easily upload your audio or video podcast file. Our platform
-                supports various formats for your convenience.
-              </p>
-            </div>
-            <div className="flex flex-col items-center p-6 bg-background rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="bg-primary/10 p-3 rounded-full mb-4">
-                <Sparkles className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Step 2: AI Generates Clips
-              </h3>
-              <p className="text-sm text-muted-foreground text-center">
-                Our advanced AI analyzes your content, identifies key moments,
-                and automatically generates engaging short clips.
-              </p>
-            </div>
-            <div className="flex flex-col items-center p-6 bg-background rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="bg-primary/10 p-3 rounded-full mb-4">
-                <Download className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Step 3: Download & Share
-              </h3>
-              <p className="text-sm text-muted-foreground text-center">
-                Review your new clips, download them instantly, and share across
-                all your social media platforms to boost engagement.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Demo Section */}
-      <section id="demo" className="text-center px-4 py-16 sm:py-24 lg:py-16">
-        <h1 className="text-3xl font-bold mb-4 tracking-tight sm:text-4xl">
-          See It In Action
-        </h1>
-        <p className="text-muted-foreground mb-12 max-w-2xl mx-auto text-lg">
-          These video clips were 100% generated by our AI software, showcasing
-          its capability to identify viral moments from longer content.
-        </p>
-        <div className="max-w-5xl mx-auto">
-          <ClipDisplay clips={demoClips as any} />
-        </div>
-      </section>
-
-      {/* Pricing Section - ENSURING THIS IS CORRECTLY PLACED */}
-      <section
-        id="pricing"
-        className="px-4 py-16 sm:py-24 lg:py-16 bg-muted/30"
-      >
+      <section id="demo" className="px-4 py-20 sm:py-32 bg-muted/30">
         <div className="max-w-6xl mx-auto text-center">
-          <BillingPage/>
+          <Badge variant="outline" className="mb-4">Live Demo</Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            See Our AI in Action
+          </h2>
+          <p className="text-xl text-muted-foreground mb-16 max-w-3xl mx-auto">
+            These clips were 100% generated by our AI from real podcasts. 
+            No human editing, no manual selection—just pure AI magic finding viral moments.
+          </p>
+          <ClipDisplay clips={demoClips as any} center />
         </div>
       </section>
 
-      {/* Contact Section Placeholder - ENSURING THIS IS CORRECTLY PLACED */}
-      <section
-        id="contact"
-        className="text-center px-4 py-16 sm:py-24 lg:py-16"
-      >
-        <h2 className="text-3xl font-bold mb-4 tracking-tight sm:text-4xl">
-          Ready to Amplify Your Podcast?
-        </h2>
-        <Link href={user ? "/dashboard" : "/sign-in"}>
-          <Button
-            variant="default"
-            className="text-base font-semibold inline-flex items-center px-8 py-6"
-            size="lg"
-          >
-            Get Started Free
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </Link>
+      {/* Problem/Solution Section */}
+      <section className="px-4 py-20 sm:py-32">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <Badge variant="outline" className="mb-4">The Problem</Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-red-600">
+                Creating Social Media Content is Eating Your Time
+              </h2>
+              <div className="space-y-4 text-lg text-muted-foreground">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
+                  <p>Spending 10+ hours per week manually editing clips</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
+                  <p>Missing the best moments because you can&apos;t watch everything</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
+                  <p>Clips getting low engagement because they&apos;re not optimized</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
+                  <p>Struggling to keep up with social media demands</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <Badge variant="default" className="mb-4 bg-gradient-primary text-white border-0">The Solution</Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-green-600">
+                AI Does the Heavy Lifting for You
+              </h2>
+              <div className="space-y-4 text-lg text-muted-foreground">
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
+                  <p>AI analyzes your entire podcast in minutes, not hours</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
+                  <p>Automatically finds the most viral-worthy moments</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
+                  <p>Creates perfectly formatted clips for all platforms</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
+                  <p>Get 3-5 ready-to-post clips from every episode</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
+
+      {/* Features Section */}
+      <section id="features" className="px-4 py-20 sm:py-32 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge variant="outline" className="mb-4">Features</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+              Powerful AI, Simple Process
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Our advanced AI doesn&apos;t just cut your content—it understands what makes clips go viral
+              and creates content that actually converts viewers into fans.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="p-8 hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-0">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
+                      <div className="text-gradient-primary">
+                        {feature.icon}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                      <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="px-4 py-20 sm:py-32">
+        <div className="max-w-6xl mx-auto text-center">
+          <Badge variant="outline" className="mb-4">How It Works</Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            From Podcast to Viral Clips in 3 Simple Steps
+          </h2>
+          <p className="text-xl text-muted-foreground mb-16 max-w-3xl mx-auto">
+            Our streamlined process transforms your long-form content into engaging, 
+            shareable clips that grow your audience across all social platforms.
+          </p>
+          
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connection lines for desktop */}
+            <div className="hidden md:block absolute top-20 left-1/3 w-1/3 h-0.5 bg-gradient-primary opacity-50" />
+            <div className="hidden md:block absolute top-20 right-1/3 w-1/3 h-0.5 bg-gradient-primary opacity-50" />
+            
+            <div className="relative">
+              <div className="bg-gradient-primary text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6">
+                1
+              </div>
+              <Card className="p-8 hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-0 text-center">
+                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-4 rounded-full inline-block mb-4">
+                    <UploadCloud className="h-8 w-8 text-gradient-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Upload Your Podcast</h3>
+                  <p className="text-muted-foreground">
+                    Simply drag and drop your MP4 video file. We support files up to 2GB in size. 
+                    Upload your podcast episode or video content directly from your computer.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="relative">
+              <div className="bg-gradient-primary text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6">
+                2
+              </div>
+              <Card className="p-8 hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-0 text-center">
+                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-4 rounded-full inline-block mb-4">
+                    <Sparkles className="h-8 w-8 text-gradient-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">AI Creates Viral Clips</h3>
+                  <p className="text-muted-foreground">
+                    Our AI analyzes your content, identifies the most engaging moments, 
+                    and creates 3-5 perfectly formatted clips optimized for social media virality.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="relative">
+              <div className="bg-gradient-primary text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6">
+                3
+              </div>
+              <Card className="p-8 hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-0 text-center">
+                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-4 rounded-full inline-block mb-4">
+                    <Download className="h-8 w-8 text-gradient-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Download & Share</h3>
+                  <p className="text-muted-foreground">
+                    Review your clips, download in the perfect format for each platform, 
+                    and watch your audience grow with content that actually converts.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      {/* <section className="px-4 py-20 sm:py-32 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge variant="outline" className="mb-4">Success Stories</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+              Join Thousands of Growing Podcasters
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              See how podcasters like you are growing their audience and revenue with viral clips
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="p-8 hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-0">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    "{testimonial.content}"
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-semibold">
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <div className="font-semibold">{testimonial.name}</div>
+                      <div className="text-sm text-muted-foreground">{testimonial.title}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section> */}
+
+      {/* Pricing Section */}
+      <section id="pricing" className="px-4 py-20 sm:py-32">
+        <div className="max-w-6xl mx-auto">
+          <PricingSection />
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="px-4 py-20 sm:py-32 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge variant="outline" className="mb-4">FAQ</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Everything you need to know about CastClip
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {faqs.map((faq, index) => (
+              <Card key={index} className="p-6 hover:shadow-lg transition-shadow duration-300 h-fit">
+                <CardContent className="p-0">
+                  <details className="group">
+                    <summary className="flex items-center justify-between cursor-pointer">
+                      <h3 className="text-lg font-semibold pr-4">{faq.question}</h3>
+                      <ChevronDown className="h-5 w-5 text-muted-foreground group-open:rotate-180 transition-transform duration-200 flex-shrink-0" />
+                    </summary>
+                    <div className="mt-4 text-muted-foreground leading-relaxed">
+                      {faq.answer}
+                    </div>
+                  </details>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="px-4 py-20 sm:py-32 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-transparent to-orange-50" />
+        <div className="relative max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            Ready to 10x Your Podcast Growth?
+          </h2>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Join 25,000+ podcasters who are already growing their audience with AI-powered clips. 
+            Start free today—no credit card required.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link href={user ? "/dashboard" : "/sign-in"}>
+              <Button size="lg" className="text-lg font-semibold px-6 py-3 h-auto bg-gradient-primary hover:opacity-90 text-white border-0">
+                Start Creating Clips Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Check className="h-4 w-4 text-green-500" />
+              5 free clips • No credit card required • Cancel anytime
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/40 px-4 py-12 bg-muted/20">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+                  <Play className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-xl font-bold">CastClip</span>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Turn your podcasts into viral social media clips with AI.
+              </p>
+              <div className="flex gap-4">
+                <Badge variant="outline">10+ Users</Badge>
+                <Badge variant="outline">1k+ Clips</Badge>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <Link href="#features" className="block hover:text-foreground transition-colors">Features</Link>
+                <Link href="#pricing" className="block hover:text-foreground transition-colors">Pricing</Link>
+                <Link href="#demo" className="block hover:text-foreground transition-colors">Demo</Link>
+                <Link href="#faq" className="block hover:text-foreground transition-colors">FAQ</Link>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <Link href="mailto:email@castclip.com" className="block hover:text-foreground transition-colors">Help Center</Link>
+                <Link href="mailto:email@castclip.com" className="block hover:text-foreground transition-colors">Contact Us</Link>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Legal</h4>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <Link href="/privacy-policy" className="block hover:text-foreground transition-colors">Privacy Policy</Link>
+                <Link href="/terms-of-service" className="block hover:text-foreground transition-colors">Terms of Service</Link>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-border/40 mt-12 pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; 2025 CastClip. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
