@@ -147,7 +147,7 @@ export default async function Home() {
     },
     {
       question: "Can I customize the clips?",
-      answer: "Yes! You can provide custom instructions to guide the AI, adjust clip length, add your own branding, and select specific segments to focus on.",
+      answer: "To keep the process as simple as possible, as of now we don't allow any sort of custom editing. We believe customization brings complexity",
     },
     {
       question: "What's included in the free plan?",
@@ -308,7 +308,7 @@ export default async function Home() {
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                  <p>Get 3-5 ready-to-post clips from every episode</p>
+                  <p>Get up to 8 ready-to-post clips at one time</p>
                 </div>
               </div>
             </div>
@@ -399,7 +399,7 @@ export default async function Home() {
                   <h3 className="text-xl font-semibold mb-4">AI Creates Viral Clips</h3>
                   <p className="text-muted-foreground">
                     Our AI analyzes your content, identifies the most engaging moments, 
-                    and creates 3-5 perfectly formatted clips optimized for social media virality.
+                    and creates up to 8 perfectly formatted clips optimized for social media virality.
                   </p>
                 </CardContent>
               </Card>
