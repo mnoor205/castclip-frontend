@@ -129,7 +129,10 @@ export default function DashboardPage({
 
             toast.success("Video Uploaded Successfully", {
                 description: "Your video has begun processing, it may take up to 15 minutes. We will send you an email when processing is complete!",
-                duration: 8000
+                duration: 8000,
+                style: {
+                    color: 'black'
+                }
             })
         } catch (error) {
             console.error(error)
@@ -236,7 +239,7 @@ export default function DashboardPage({
                                                 {/* Beta Badge */}
                                                 {type.status === 'beta' && (
                                                     <div className="absolute top-2 left-2 z-10">
-                                                        <Badge variant="default" className="bg-yellow-400 text-yellow-900 border border-yellow-500/50">
+                                                        <Badge variant="default" className="bg-primary text-white border border-pink-500/50">
                                                             Beta
                                                         </Badge>
                                                     </div>
@@ -291,6 +294,8 @@ export default function DashboardPage({
                                             <SelectItem value="6">6</SelectItem>
                                             <SelectItem value="7">7</SelectItem>
                                             <SelectItem value="8">8</SelectItem>
+                                            <SelectItem value="9">9</SelectItem>
+                                            <SelectItem value="10">10</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

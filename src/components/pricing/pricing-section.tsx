@@ -153,7 +153,7 @@ export default function PricingSection({
           <div className="flex justify-center mb-8">
             <Badge variant="secondary" className="px-4 py-2 text-sm font-medium bg-green-50 text-green-700 border-green-200">
               <Sparkles className="h-4 w-4 mr-2" />
-              Every new user gets 5 free credits to start!
+              Every new user gets 10 free credits to start!
             </Badge>
           </div>
         </div>

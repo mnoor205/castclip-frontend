@@ -135,7 +135,7 @@ export default async function Home() {
     },
     {
       question: "How do credits work?",
-      answer: "Each short clip (20-60 seconds) costs approximately 2 credits. You can generate 1-5 clips per upload, with our AI typically creating 1 clip per 5 minutes of content. Credits never expire and all packages are one-time purchases with no subscriptions.",
+      answer: "Each short clip (20-90 seconds) cost 2 credits. You can generate 1-10 clips per upload. Credits never expire and all packages are one-time purchases with no subscriptions.",
     },
     {
       question: "What formats do you support?",
@@ -151,7 +151,7 @@ export default async function Home() {
     },
     {
       question: "What's included in the free plan?",
-      answer: "Every new user gets 5 free credits to generate clips from their podcasts. Each credit processes about 30 minutes of content and can generate multiple clips.",
+      answer: "Every new user gets 10 free credits to generate clips from their podcasts. Thats 5 free clips that you can generate to decide if the service is worth it for you!",
     },
     {
       question: "Do credits expire?",
@@ -207,11 +207,11 @@ export default async function Home() {
             </Badge>
           </div>
           
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6">
-            Turn Your Podcast Into
+          <h1 className="text-4xl sm:text-6xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+            Turn Your Business Podcast Into
             <br />
             <span className="text-gradient-primary">
-              Viral TikTok Clips
+              Viral Short Clips
             </span>
           </h1>
           
@@ -308,7 +308,7 @@ export default async function Home() {
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                  <p>Get up to 8 ready-to-post clips at one time</p>
+                  <p>Get up to 10 ready-to-post clips at one time</p>
                 </div>
               </div>
             </div>
@@ -399,7 +399,7 @@ export default async function Home() {
                   <h3 className="text-xl font-semibold mb-4">AI Creates Viral Clips</h3>
                   <p className="text-muted-foreground">
                     Our AI analyzes your content, identifies the most engaging moments, 
-                    and creates up to 8 perfectly formatted clips optimized for social media virality.
+                    and creates up to 10 perfectly formatted clips optimized for social media virality.
                   </p>
                 </CardContent>
               </Card>
