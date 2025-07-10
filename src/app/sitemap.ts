@@ -46,19 +46,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
           // Other random stuff
           {
-            url: `${baseUrl}/sign-in`,
+            url: `${baseUrl}sign-in`,
             lastModified: new Date(),
             changeFrequency: 'daily',
             priority: 0.3,
           },
           {
-            url: `${baseUrl}/privacy-policy`,
+            url: `${baseUrl}privacy-policy`,
             lastModified: new Date(),
             changeFrequency: 'yearly',
             priority: 0.3,
           },
           {
-            url: `${baseUrl}/terms-of-service`,
+            url: `${baseUrl}terms-of-service`,
             lastModified: new Date(),
             changeFrequency: 'yearly',
             priority: 0.3,
