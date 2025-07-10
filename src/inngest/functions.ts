@@ -60,20 +60,34 @@ export const processVideo = inngest.createFunction(
         })
 
         await step.run("process-video-external", async () => {
-          const response = await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
-            method: "POST",
-            body: JSON.stringify({ s3_key: s3Key, clip_count: affordableClipCount, style: captionStyle }),
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 20 * 60 * 1000) // 20 minute timeout
+          
+          try {
+            const response = await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
+              method: "POST",
+              body: JSON.stringify({ s3_key: s3Key, clip_count: affordableClipCount, style: captionStyle }),
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`
+              },
+              signal: controller.signal
+            })
+            
+            clearTimeout(timeoutId)
+            
+            if (!response.ok) {
+              throw new Error(`Video processing failed with status: ${response.status}`)
             }
-          })
-          
-          if (!response.ok) {
-            throw new Error(`Video processing failed with status: ${response.status}`)
+            
+            return response
+          } catch (error) {
+            clearTimeout(timeoutId)
+            if (error instanceof Error && error.name === 'AbortError') {
+              throw new Error('Video processing timed out after 20 minutes')
+            }
+            throw error
           }
-          
-          return response
         })
 
         const { clipsFound } = await step.run("create-clips-in-db", async () => {

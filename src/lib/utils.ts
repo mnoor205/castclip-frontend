@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function constructMetadata({
-  title = "CastClip - AI Podcast Clipper",
+  title = "CastClip | Generate Viral Clips For Your Podcast in Minutes",
   description = "Castclip turns any full length podcast into short tiktok clips",
   image = "https://castclip.revolt-ai.com/app/preview.png",
   icons = "/favicon.ico",
@@ -36,7 +36,7 @@ export function constructMetadata({
       title,
       description,
       images: [image],
-      creator: "@muhammadxnoor"
+      creator: "@_muhammadnoor"
     },
     icons,
     metadataBase: new URL('https://castclip.app'),

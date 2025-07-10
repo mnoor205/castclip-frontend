@@ -515,7 +515,7 @@ export default async function Home() {
             Ready to 10x Your Podcast Growth?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join 25,000+ podcasters who are already growing their audience with AI-powered clips. 
+            Join 10+ podcasters who are already growing their audience with AI-powered clips. 
             Start free today—no credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

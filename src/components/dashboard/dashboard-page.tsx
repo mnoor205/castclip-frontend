@@ -131,14 +131,30 @@ export default function DashboardPage({
                 description: "Your video has begun processing, it may take up to 15 minutes. We will send you an email when processing is complete!",
                 duration: 8000,
                 style: {
-                    color: 'black'
-                }
+                    color: 'black',
+                    backgroundColor: 'white'
+                },
+                className: '[&_*]:!text-black'
             })
         } catch (error) {
             console.error(error)
+            
+            // More specific error handling
+            let errorDescription = "There was a problem uploading your video. Please try again."
+            
+            if (error instanceof Error) {
+                if (error.message.includes('timeout')) {
+                    errorDescription = "The request timed out. Your video may still be processing. Check the Queue tab in a few minutes."
+                } else if (error.message.includes('credits')) {
+                    errorDescription = "Insufficient credits to process this video."
+                } else if (error.message.includes('Database')) {
+                    errorDescription = "Database connection issue. Please try again in a moment."
+                }
+            }
+            
             toast.error("Upload Failed", {
-                description: "There was a problem uploading your video. Please try again.",
-                duration: 5000
+                description: errorDescription,
+                duration: 8000
             })
         } finally {
             setUploading(false)
