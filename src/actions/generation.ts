@@ -3,14 +3,15 @@
 import { inngest } from "@/inngest/client"
 import { prismaDB } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { getUserData } from "./user"
 
-export async function processVideo(uploadedFileId: string, clipCount: number, captionStyle: number) {
+export async function processVideo(projectId: string, clipCount: number, captionStyle: number) {
     try {
         // Add timeout to database operations
-        const uploadedVideo = await Promise.race([
-            prismaDB.uploadedFile.findUniqueOrThrow({
+        const project = await Promise.race([
+            prismaDB.project.findUniqueOrThrow({
                 where: {
-                    id: uploadedFileId
+                    id: projectId
                 },
                 select: {
                     uploaded: true,
@@ -27,13 +28,13 @@ export async function processVideo(uploadedFileId: string, clipCount: number, ca
             userId: string;
         }
 
-        if (uploadedVideo.uploaded) return
+        if (project.uploaded) return
 
         // Add timeout to Inngest event sending
         await Promise.race([
             inngest.send({
                 name: "process-video-events",
-                data: { uploadedFileId: uploadedVideo.id, clipCount: clipCount, captionStyle: captionStyle }
+                data: { projectId: project.id, clipCount: clipCount, captionStyle: captionStyle }
             }),
             new Promise<never>((_, reject) => 
                 setTimeout(() => reject(new Error('Inngest send timeout')), 8000)
@@ -42,9 +43,9 @@ export async function processVideo(uploadedFileId: string, clipCount: number, ca
 
         // Add timeout to database update
         await Promise.race([
-            prismaDB.uploadedFile.update({
+            prismaDB.project.update({
                 where: {
-                    id: uploadedFileId
+                    id: projectId
                 },
                 data: {
                     uploaded: true
@@ -61,4 +62,42 @@ export async function processVideo(uploadedFileId: string, clipCount: number, ca
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         throw new Error(`Processing failed: ${errorMessage}`)
     }
+}
+
+export async function createProjectFromUrl({
+    videoUrl,
+    title,
+    thumbnailUrl,
+    clipCount,
+    captionStyle,
+}: {
+    videoUrl: string
+    title: string
+    thumbnailUrl: string
+    clipCount: number
+    captionStyle: number
+}) {
+    const user = await getUserData()
+
+    if (!user?.id) {
+        throw new Error("User not authenticated")
+    }
+
+    const project = await prismaDB.project.create({
+        data: {
+            user: { connect: { id: user.id } },
+            source: "VIDEO_URL",
+            externalUrl: videoUrl,
+            displayName: title,
+            thumbnailUrl: thumbnailUrl,
+            clipCount,
+            captionStyle,
+        },
+    })
+
+    await processVideo(project.id, clipCount, captionStyle)
+
+    revalidatePath("/dashboard")
+
+    return { projectId: project.id }
 }

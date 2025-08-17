@@ -7,17 +7,14 @@ import {
   ArrowRight,
   UploadCloud,
   Sparkles,
-  Download,
   Play,
-  Clock,
   Check,
-  Zap,
-  Target,
-  BarChart,
   ChevronDown,
+  Youtube,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
-import { ClipDisplay } from "@/components/dashboard/clip-display";
+import { ClipDisplay } from "@/components/projects/clip-display";
 import PricingSection from "@/components/pricing/pricing-section";
 
 export default async function Home() {
@@ -98,28 +95,7 @@ export default async function Home() {
   //   },
   // ];
 
-  const features = [
-    {
-      icon: <Zap className="h-6 w-6" />,
-      title: "AI-Powered Clip Generation",
-      description: "Advanced AI analyzes your content and identifies the most engaging, viral-worthy moments automatically.",
-    },
-    {
-      icon: <Target className="h-6 w-6" />,
-      title: "Viral Moment Detection",
-      description: "Our AI understands what makes content go viral and finds those exact moments in your podcasts.",
-    },
-    {
-      icon: <Clock className="h-6 w-6" />,
-      title: "10x Faster Than Manual Editing",
-      description: "What takes hours of manual editing is done in minutes. More time creating, less time editing.",
-    },
-    {
-      icon: <BarChart className="h-6 w-6" />,
-      title: "Optimized for All Platforms",
-      description: "Clips are automatically formatted for TikTok, Instagram Reels, YouTube Shorts, and more.",
-    },
-  ];
+  // features section is rendered inline below the hero
 
   const stats = [
     { number: "1000+", label: "Clips Generated" },
@@ -135,11 +111,11 @@ export default async function Home() {
     },
     {
       question: "How do credits work?",
-      answer: "Each short clip (20-90 seconds) cost 2 credits. You can generate 1-10 clips per upload. Credits never expire and all packages are one-time purchases with no subscriptions.",
+      answer: "Each short clip (20-90 seconds) costs 2 credits. You can generate 1-10 clips per upload. Credits never expire and all packages are one-time purchases with no subscriptions.",
     },
     {
       question: "What formats do you support?",
-      answer: "We currently support MP4 video files up to 2GB in size. Simply upload your podcast episode or video content directly from your computer.",
+      answer: "We currently support MP4 video files up to 2GB in size. Simply upload your podcast or paste a video link to get started.",
     },
     {
       question: "How long does it take to process a podcast?",
@@ -157,10 +133,15 @@ export default async function Home() {
       question: "Do credits expire?",
       answer: "No! Credits never expire and can be used anytime. All our packages are one-time purchases with no recurring subscriptions or hidden fees.",
     },
+    {
+      question: "What platforms are supported?",
+      answer:
+        "We support links from all major platforms including YouTube, Vimeo, TikTok, Instagram, Facebook, Twitter (X), Rumble, Twitch, Reddit, and Dailymotion. For other sites, try pasting the link — many providers work out of the box.",
+    },
   ];
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-pink-50 via-transparent to-orange-50">
+    <main className="min-h-screen">
       {/* Header */}
       <header className="flex justify-between items-center px-4 sm:px-6 md:px-12 py-3 sticky top-0 bg-transparent backdrop-blur-md z-50 border-b border-white/20 shadow-sm">
         <div className="flex items-center gap-3">
@@ -208,17 +189,19 @@ export default async function Home() {
           </div>
           
           <h1 className="text-4xl sm:text-6xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-            Turn Your Business Podcast Into
+            Turn Your Business Podcast into 
             <br />
             <span className="text-gradient-primary">
-              Viral Short Clips
+              Viral Short Clips {" "}
             </span>
+            in Minutes
           </h1>
           
-          <p className="text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
-            Our AI finds the most engaging moments in your podcast and creates ready-to-post clips in minutes. 
-            <strong className="text-foreground"> No editing skills required.</strong>
-          </p>
+          <p className="text-lg sm:text-xl text-gray-400 max-w-3xl mx-auto mb-8 leading-relaxed">
+              CastClip finds the most engaging and valuable moments in your content
+              and turns them into ready-to-post vertical videos for TikTok,
+              Reels, and Shorts.
+            </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Link href={user ? "/dashboard" : "/sign-in"}>
@@ -231,6 +214,7 @@ export default async function Home() {
               <Check className="h-4 w-4 text-green-500" />
               5 free clips • No credit card required
             </div>
+
           </div>
 
           {/* Stats */}
@@ -242,21 +226,6 @@ export default async function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Demo Section */}
-      <section id="demo" className="px-4 py-20 sm:py-32 bg-muted/30">
-        <div className="max-w-6xl mx-auto text-center">
-          <Badge variant="outline" className="mb-4">Live Demo</Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-            See Our AI in Action
-          </h2>
-          <p className="text-xl text-muted-foreground mb-16 max-w-3xl mx-auto">
-            These clips were 100% generated by our AI from real podcasts. 
-            No human editing, no manual selection—just pure AI magic finding viral moments.
-          </p>
-          <ClipDisplay clips={demoClips as any} center />
         </div>
       </section>
 
@@ -316,44 +285,82 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="px-4 py-20 sm:py-32 bg-muted/30">
+      {/* Features Section (moved below hero) */}
+      <section id="features" className="px-4 py-16 sm:py-20">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4">Features</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-              Powerful AI, Simple Process
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Our advanced AI doesn&apos;t just cut your content—it understands what makes clips go viral
-              and creates content that actually converts viewers into fans.
+          <div className="text-center mb-12">
+            <Badge variant="outline" className="mb-3">Ways to Create Clips</Badge>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Start with Files, Your Channel, or Links</h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto">
+              Choose the method that fits your workflow. Import your content quickly and let the AI do the rest.
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="p-8 hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-0">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
-                      <div className="text-gradient-primary">
-                        {feature.icon}
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                      <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-                    </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <div className="flex items-start gap-4">
+                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
+                    <UploadCloud className="h-6 w-6 text-gradient-primary" />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Upload Files</h3>
+                    <p className="text-muted-foreground">Drag and drop MP4 files up to 2GB. We process the entire episode to find viral moments.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <div className="flex items-start gap-4">
+                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
+                    <Youtube className="h-6 w-6 text-gradient-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Connect YouTube Channel</h3>
+                    <p className="text-muted-foreground">Connect your channel to pull videos securely and generate clips without manual uploads.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6">
+              <CardContent className="p-0">
+                <div className="flex items-start gap-4">
+                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
+                    <Link2 className="h-6 w-6 text-gradient-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Use Links</h3>
+                    <p className="text-muted-foreground">Paste a link to any video and start generating clips instantly.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
+      {/* Demo Section */}
+      <section id="demo" className="px-4 py-20 sm:py-32 bg-muted/30">
+        <div className="max-w-6xl mx-auto text-center">
+          <Badge variant="outline" className="mb-4">Demo</Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            See it in Action
+          </h2>
+          <p className="text-xl text-muted-foreground mb-16 max-w-3xl mx-auto">
+            These clips were 100% generated by CastClip, with no human editing.
+          </p>
+          <ClipDisplay clips={demoClips as any} readOnly center/>
+        </div>
+      </section>
+
+      
+
+      {/* Features Section (original) removed per request */}
+
       {/* How It Works Section */}
-      <section className="px-4 py-20 sm:py-32">
+      {/* <section className="px-4 py-20 sm:py-32">
         <div className="max-w-6xl mx-auto text-center">
           <Badge variant="outline" className="mb-4">How It Works</Badge>
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
@@ -365,7 +372,7 @@ export default async function Home() {
           </p>
           
           <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connection lines for desktop */}
+            {/* Connection lines for desktop 
             <div className="hidden md:block absolute top-20 left-1/3 w-1/3 h-0.5 bg-gradient-primary opacity-50" />
             <div className="hidden md:block absolute top-20 right-1/3 w-1/3 h-0.5 bg-gradient-primary opacity-50" />
             
@@ -378,10 +385,10 @@ export default async function Home() {
                   <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-4 rounded-full inline-block mb-4">
                     <UploadCloud className="h-8 w-8 text-gradient-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-4">Upload Your Podcast</h3>
+                  <h3 className="text-xl font-semibold mb-4">Upload or Paste YouTube Link</h3>
                   <p className="text-muted-foreground">
-                    Simply drag and drop your MP4 video file. We support files up to 2GB in size. 
-                    Upload your podcast episode or video content directly from your computer.
+                    Drag and drop an MP4 (up to 2GB), or paste a YouTube link to import directly. 
+                    Start with a local file or any public YouTube video.
                   </p>
                 </CardContent>
               </Card>
@@ -398,7 +405,7 @@ export default async function Home() {
                   </div>
                   <h3 className="text-xl font-semibold mb-4">AI Creates Viral Clips</h3>
                   <p className="text-muted-foreground">
-                    Our AI analyzes your content, identifies the most engaging moments, 
+                    Our AI analyzes uploads and YouTube imports, identifies the most engaging moments, 
                     and creates up to 10 perfectly formatted clips optimized for social media virality.
                   </p>
                 </CardContent>
@@ -424,7 +431,7 @@ export default async function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Testimonials Section */}
       {/* <section className="px-4 py-20 sm:py-32 bg-muted/30">
@@ -527,7 +534,7 @@ export default async function Home() {
             </Link>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Check className="h-4 w-4 text-green-500" />
-              5 free clips • No credit card required • Cancel anytime
+              5 free clips • No credit card required
             </div>
           </div>
         </div>

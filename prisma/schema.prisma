@@ -16,22 +16,22 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean
-  image         String?
-  credits       Int @default(10)
-  stripeCustomerId String? @unique
-  createdAt     DateTime
-  updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
+  id               String    @id
+  name             String
+  email            String
+  emailVerified    Boolean
+  image            String?
+  credits          Int       @default(10)
+  stripeCustomerId String?   @unique
+  createdAt        DateTime
+  updatedAt        DateTime
+  sessions         Session[]
+  accounts         Account[]
+  projects         Project[]
+  clips            Clip[]
 
   @@unique([email])
   @@map("user")
-  UploadedFile UploadedFile[]
-  clips Clip[]
 }
 
 model Session {
@@ -79,34 +79,47 @@ model Verification {
   @@map("verification")
 }
 
-model UploadedFile {
-  id String @id @default(cuid())
-  s3Key String
-  displayName String?
-  uploaded Boolean @default(false)
-  status String @default("queued") // processing, processed, no credits
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  clipCount Int  @default(1)
-  captionStyle Int @default(1)
+enum ProjectSource {
+  UPLOADED_FILE
+  YOUTUBE_CHANNEL
+  VIDEO_URL
+}
+
+model Project {
+  id           String  @id @default(uuid())
+  // For uploaded files we keep s3Key, for external sources we can store externalUrl
+  s3Key        String?
+  externalUrl  String?
+  displayName  String?
+  thumbnailUrl String?
+
+  source       ProjectSource @default(UPLOADED_FILE)
+  status       String        @default("queued") // processing, processed, no credits
+  uploaded     Boolean       @default(false)
+  clipCount    Int           @default(1)
+  captionStyle Int           @default(1)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
   Clip Clip[]
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
   @@index([s3Key])
+  @@map("UploadedFile") // Keep existing table name for seamless migration
 }
 
 model Clip {
-  id String @id @default(cuid())
-  s3Key String
+  id        String   @id @default(uuid())
+  s3Key     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  uploadedFile UploadedFile? @relation(fields: [uploadedFileId], references: [id], onDelete: Cascade)
-  uploadedFileId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?  @map("uploadedFileId")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
   @@index([s3Key])

@@ -8,17 +8,28 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog" 
 import { Settings } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button" 
 import { User, CreditCard } from "lucide-react"
-import { UserObject } from "@/lib/types"
+import { AuthUserObject } from "@/lib/types"
 import { BillingSettings } from "./billing"
 import { AccountSettings } from "./account"
+import { getConnectedAccounts } from "@/actions/account"
 
 type SettingsTab = "account" | "billing"
 
-export function SettingsDialog({ user }: { user: UserObject}) {
+export function SettingsDialog({ user }: { user: AuthUserObject}) {
     const [activeTab, setActiveTab] = useState<SettingsTab>("account")
+    const [connectedAccounts, setConnectedAccounts] = useState<string[]>([])
+
+    useEffect(() => {
+        getConnectedAccounts().then(setConnectedAccounts)
+    }, [])
+
+    const enrichedUser = {
+        ...user,
+        connectedAccounts,
+    }
 
     return (
         <Dialog>
@@ -38,7 +49,11 @@ export function SettingsDialog({ user }: { user: UserObject}) {
                     <div className="flex flex-col gap-1 border-b pb-4 md:w-[200px] md:border-b-0 md:border-r md:pb-0 md:pr-4">
                         <Button
                             variant={activeTab === "account" ? "default" : "ghost"}
-                            className="justify-start"
+                            className={`justify-start ${
+                                activeTab === "account" 
+                                    ? "bg-gradient-primary text-white border-0 hover:opacity-90" 
+                                    : "bg-transparent hover:bg-muted"
+                            }`}
                             onClick={() => setActiveTab("account")}
                         >
                             <User className="mr-2 h-4 w-4" />
@@ -46,7 +61,11 @@ export function SettingsDialog({ user }: { user: UserObject}) {
                         </Button>
                         <Button
                             variant={activeTab === "billing" ? "default" : "ghost"}
-                            className="justify-start"
+                            className={`justify-start ${
+                                activeTab === "billing" 
+                                    ? "bg-gradient-primary text-white border-0 hover:opacity-90" 
+                                    : "bg-transparent hover:bg-muted"
+                            }`}
                             onClick={() => setActiveTab("billing")}
                         >
                             <CreditCard className="mr-2 h-4 w-4" />
@@ -56,8 +75,8 @@ export function SettingsDialog({ user }: { user: UserObject}) {
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto h-[500px] pr-2">
-                        {activeTab === "account" && <AccountSettings user={user} />}
-                        {activeTab === "billing" && <BillingSettings user={user}/>}
+                        {activeTab === "account" && <AccountSettings user={enrichedUser} />}
+                        {activeTab === "billing" && <BillingSettings user={enrichedUser}/>}
                     </div>
                 </div>
             </DialogContent>

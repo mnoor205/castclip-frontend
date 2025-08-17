@@ -1,5 +1,5 @@
 import { getUserData } from "@/actions/user"
-import DashboardPage from "@/components/dashboard/dashboard-page"
+import DashboardPage from "@/components/dashboard"
 import { prismaDB } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 
@@ -15,9 +15,12 @@ export default async function Dashboard() {
         where: { id: user.id },
         select: {
             credits: true,
-            UploadedFile: {
+            projects: {
                 where: {
                     uploaded: true
+                },
+                orderBy: {
+                    createdAt: "desc"
                 },
                  select: {
                     id: true,
@@ -25,6 +28,7 @@ export default async function Dashboard() {
                     displayName: true,
                     status: true,
                     createdAt: true,
+                    thumbnailUrl: true,
                     _count: {
                         select: {
                             Clip: true
@@ -40,14 +44,14 @@ export default async function Dashboard() {
         }
     })
 
-    const formattedFiles = userData.UploadedFile.map((file) => ({
-        id: file.id,
-        s3Key: file.s3Key,
-        fileName: file.displayName || "Unknown filename",
-        status: file.status,
-        clipsCount: file._count.Clip,
-        createdAt: file.createdAt
+    const formattedFiles = userData.projects.map((project) => ({
+        id: project.id,
+        thumbnail: project.thumbnailUrl ?? undefined,
+        title: project.displayName || "Unknown filename",
+        status: project.status.charAt(0).toUpperCase() + project.status.slice(1),
+        clips: project._count.Clip,
+        createdAt: project.createdAt.toISOString(),
     }))
 
-    return <DashboardPage uploadedFiles={formattedFiles} clips={userData.clips} credits={userData.credits} />
+    return <DashboardPage userName={user.name} projects={formattedFiles} credits={userData.credits} />
 }

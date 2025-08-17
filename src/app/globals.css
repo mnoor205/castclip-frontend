@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
 /* @custom-variant dark (&:is(.dark *)); */
 
 :root {
@@ -48,7 +50,7 @@
   --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-  
+
   /* Custom gradient */
   --gradient-primary: linear-gradient(to top left, #FFE29F, #FFA99F, #FF719A);
 }
@@ -98,7 +100,7 @@
   --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
   --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-  
+
   /* Custom gradient */
   --gradient-primary: linear-gradient(to top left, #FFE29F, #FFA99F, #FF719A);
 }
@@ -170,18 +172,18 @@
   .bg-gradient-primary {
     background: var(--gradient-primary);
   }
-  
+
   .text-gradient-primary {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  
+
   .border-gradient-primary {
     border-image: var(--gradient-primary) 1;
   }
-  
+
   .rounded-gradient-border::before {
     content: "";
     position: absolute;

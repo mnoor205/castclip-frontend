@@ -9,73 +9,90 @@ export const processVideo = inngest.createFunction(
     retries: 1, // Tries 2 times
     concurrency: {
       limit: 1,
-      key: "event.data.userId"
-    }
+      key: "event.data.userId",
+    },
   },
   { event: "process-video-events" },
   async ({ event, step }) => {
-    const { uploadedFileId, clipCount, captionStyle } = event.data
+    const { projectId, clipCount, captionStyle } = event.data
 
     try {
-      const { userId, credits, email, name, s3Key } = await step.run("check-credits", async () => {
-        const uploadedFile = await prismaDB.uploadedFile.findUniqueOrThrow({
-          where: {
-            id: uploadedFileId
-          },
-          select: {
-            user: {
-              select: {
-                id: true,
-                credits: true,
-                email: true,
-                name: true
-              }
+      const { userId, credits, email, name, s3Key, externalUrl, source } = await step.run(
+        "check-credits",
+        async () => {
+          const project = await prismaDB.project.findUniqueOrThrow({
+            where: {
+              id: projectId,
             },
-            s3Key: true,
-          }
-        })
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  credits: true,
+                  email: true,
+                  name: true,
+                },
+              },
+              s3Key: true,
+              externalUrl: true,
+              source: true,
+            },
+          })
 
-        return {
-          userId: uploadedFile.user.id,
-          credits: uploadedFile.user.credits,
-          email: uploadedFile.user.email,
-          name: uploadedFile.user.name,
-          s3Key: uploadedFile.s3Key
+          return {
+            userId: project.user.id,
+            credits: project.user.credits,
+            email: project.user.email,
+            name: project.user.name,
+            s3Key: project.s3Key,
+            externalUrl: project.externalUrl,
+            source: project.source,
+          }
         }
-      })
+      )
 
       // Calculate how many clips the user can afford (each clip costs 2 credits)
       const affordableClipCount = Math.min(Math.floor(credits / 2), clipCount);
       
       if (affordableClipCount > 0) {
         await step.run("set-status-processing", async () => {
-          await prismaDB.uploadedFile.update({
+          await prismaDB.project.update({
             where: {
-              id: uploadedFileId,
+              id: projectId,
             },
             data: {
-              status: "processing"
-            }
+              status: "processing",
+            },
           })
         })
 
         await step.run("process-video-external", async () => {
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 20 * 60 * 1000) // 20 minute timeout
-          
+
+          const keyForProcessing = source === "UPLOADED_FILE" ? s3Key : externalUrl
+          if (!keyForProcessing) {
+            throw new Error(`No processing key found for project ${projectId} with source ${source}`)
+          }
+
           try {
             const response = await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
               method: "POST",
-              body: JSON.stringify({ s3_key: s3Key, clip_count: affordableClipCount, style: captionStyle }),
+              body: JSON.stringify({
+                s3_key: keyForProcessing,
+                ids: `${userId}/${projectId}`,
+                clip_count: affordableClipCount,
+                style: captionStyle,
+              }),
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`
+                Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`,
               },
-              signal: controller.signal
+              signal: controller.signal,
             })
-            
+
             clearTimeout(timeoutId)
-            
+
             if (!response.ok) {
               throw new Error(`Video processing failed with status: ${response.status}`)
             }
@@ -90,9 +107,20 @@ export const processVideo = inngest.createFunction(
           }
         })
 
+        if (source === "VIDEO_URL") {
+          await step.run("save-s3-key-for-url-project", async () => {
+            // Reconstruct the S3 key based on the folder structure
+            const generatedS3Key = `${userId}/${projectId}/original.mp4`;
+            await prismaDB.project.update({
+              where: { id: projectId },
+              data: { s3Key: generatedS3Key },
+            });
+          });
+        }
+
         const { clipsFound } = await step.run("create-clips-in-db", async () => {
-          const parts = s3Key.split("/")
-          const folderPrefix = parts.length >= 2 ? `${parts[0]}/${parts[1]}` : s3Key
+          // This logic might need adjustment if clips for URL-based projects are stored differently
+          const folderPrefix = `${userId}/${projectId}`
 
           const allKeys = await lists3ObjectsByPrefix(folderPrefix)
 
@@ -105,7 +133,7 @@ export const processVideo = inngest.createFunction(
             await prismaDB.clip.createMany({
               data: clipKeys.map((clipKey) => ({
                 s3Key: clipKey,
-                uploadedFileId,
+                projectId: projectId,
                 userId
               }))
             })
@@ -130,9 +158,9 @@ export const processVideo = inngest.createFunction(
         })
 
         await step.run("set-status-processed", async () => {
-          await prismaDB.uploadedFile.update({
+          await prismaDB.project.update({
             where: {
-              id: uploadedFileId,
+              id: projectId,
             },
             data: {
               status: "processed"
@@ -159,9 +187,9 @@ export const processVideo = inngest.createFunction(
 
       } else {
         await step.run("set-status-no-credits", async () => {
-          await prismaDB.uploadedFile.update({
+          await prismaDB.project.update({
             where: {
-              id: uploadedFileId,
+              id: projectId,
             },
             data: {
               status: "no credits"
@@ -172,9 +200,9 @@ export const processVideo = inngest.createFunction(
     } catch (error) {
       console.error("Video processing failed:", error)
       await step.run("set-status-failed", async () => {
-      await prismaDB.uploadedFile.update({
+      await prismaDB.project.update({
         where: {
-          id: uploadedFileId,
+          id: projectId,
         },
         data: {
           status: "failed"

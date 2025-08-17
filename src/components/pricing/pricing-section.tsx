@@ -133,7 +133,7 @@ interface PricingSectionProps {
 export default function PricingSection({ 
   showHeader = true, 
   title = "Simple, Transparent Pricing",
-  description = "Start free and scale as you grow. No hidden fees, no surprises.",
+  description = "Start free and only pay for what you need. No hidden fees, no surprises.",
   variant = "default",
   className
 }: PricingSectionProps) {

@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   images: {
-    domains: ['castclip.revolt-ai.com'],
+    domains: ['castclip.revolt-ai.com', 'i9.ytimg.com', "i.ytimg.com"]
   },
   async rewrites() {
     return [
