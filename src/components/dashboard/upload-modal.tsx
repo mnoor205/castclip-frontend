@@ -146,7 +146,7 @@ export default function UploadModal({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpload} disabled={files.length === 0 || uploading}>
+            <Button onClick={handleUpload} disabled={files.length === 0 || uploading} className="bg-gradient-primary text-white hover:bg-gradient-primary/90">
               {uploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...

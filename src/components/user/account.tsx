@@ -2,39 +2,30 @@
 
 import { UserObject } from "@/lib/types"
 import { Button } from "../ui/button"
-import Image from "next/image"
 import { useState } from "react"
 import { toast } from "sonner"
-import { disconnectGoogleAccount } from "@/actions/account"
+import { disconnectYouTubeChannel } from "@/actions/account"
 import { Loader2 } from "lucide-react"
-import { useGoogleOAuth } from "@/hooks/use-google-oauth"
 
 type Props = {
   user: UserObject
 }
 
 export function AccountSettings({ user }: Props) {
-  const [isGoogleConnected, setIsGoogleConnected] = useState(user.connectedAccounts?.includes("google") || false)
-  const [isDisconnecting, setIsDisconnecting] = useState(false)
+  const [isYouTubeConnected, setIsYouTubeConnected] = useState(!!user.youtubeChannelId)
+  const [isDisconnectingYouTube, setIsDisconnectingYouTube] = useState(false)
 
-  const { isScriptReady, isConnecting, connectGoogle } = useGoogleOAuth({
-    onSuccess: () => {
-      setIsGoogleConnected(true)
-      toast.success("Successfully connected your Google account!")
-    },
-  })
-
-  const handleDisconnectGoogle = async () => {
-    setIsDisconnecting(true)
+  const handleDisconnectYouTube = async () => {
+    setIsDisconnectingYouTube(true)
     try {
-      await disconnectGoogleAccount()
-      setIsGoogleConnected(false)
-      toast.success("Successfully disconnected your Google account")
+      await disconnectYouTubeChannel()
+      setIsYouTubeConnected(false)
+      toast.success("Successfully disconnected your YouTube channel")
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to disconnect Google account"
+      const message = error instanceof Error ? error.message : "Failed to disconnect YouTube channel"
       toast.error("Failed to disconnect", { description: message })
     } finally {
-      setIsDisconnecting(false)
+      setIsDisconnectingYouTube(false)
     }
   }
 
@@ -58,24 +49,33 @@ export function AccountSettings({ user }: Props) {
       <div>
         <h3 className="text-lg font-medium">Connected Accounts</h3>
         <p className="text-sm text-muted-foreground">Manage your connected social accounts.</p>
+
+        {/* YouTube Channel Section */}
         <div className="mt-4 flex items-center justify-between rounded-md border p-4">
           <div className="flex items-center gap-4">
-            <Image src="/google.svg" alt="Google" width={24} height={24} />
+            <div className="w-6 h-6 bg-red-600 rounded flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </div>
             <div>
-              <span className="font-medium">Google</span>
+              <span className="font-medium">YouTube Channel</span>
               <p className="text-sm text-muted-foreground">
-                {isGoogleConnected ? "Connected to your YouTube channel" : "Not Connected"}
+                {isYouTubeConnected 
+                  ? `Connected: ${user.youtubeChannelTitle || 'Your Channel'}` 
+                  : "Not Connected"
+                }
               </p>
             </div>
           </div>
-          {isGoogleConnected ? (
+          {isYouTubeConnected ? (
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={handleDisconnectGoogle}
-              disabled={isDisconnecting}
+              onClick={handleDisconnectYouTube}
+              disabled={isDisconnectingYouTube}
             >
-              {isDisconnecting ? (
+              {isDisconnectingYouTube ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Disconnecting...
@@ -88,22 +88,9 @@ export function AccountSettings({ user }: Props) {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={connectGoogle}
-              disabled={isConnecting || !isScriptReady}
+              disabled
             >
-              {isConnecting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting...
-                </>
-              ) : !isScriptReady ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                "Connect"
-              )}
+              Connect on Dashboard
             </Button>
           )}
         </div>

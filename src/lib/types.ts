@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { buttonVariants } from "@/components/ui/button";
 import { VariantProps } from "class-variance-authority";
 
@@ -9,6 +8,8 @@ export interface UserObject {
   image?: string | null | undefined
   credits?: number
   connectedAccounts?: string[]
+  youtubeChannelId?: string | null
+  youtubeChannelTitle?: string | null
 }
 
 export interface AuthUserObject {
@@ -42,23 +43,6 @@ export interface APIError extends Error {
   details?: string;
 }
 
-// Google OAuth types
-export interface GoogleAuthResponse {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-  token_type: string;
-  scope: string;
-}
-
-export interface GoogleTokenInfo {
-  access_token: string;
-  expires_in: number;
-  refresh_token?: string;
-  scope: string;
-  token_type: string;
-}
-
 // Stripe types
 export interface StripeError extends Error {
   type: string;
@@ -67,21 +51,35 @@ export interface StripeError extends Error {
   param?: string;
 }
 
-// Google OAuth client types
-export interface GoogleOAuthClient {
-  requestCode: () => void;
-  callback: (response: any) => void;
+
+// YouTube Types
+export interface Video {
+  id: string
+  title: string
+  thumbnailUrl: string
 }
 
-export interface GoogleOAuthInitConfig {
-  client_id: string;
-  scope: string;
-  ux_mode: 'popup' | 'redirect';
-  redirect_uri?: string;
-  callback: (response: any) => void;
+export interface YouTubeChannel {
+  channelId: string
+  channelTitle: string
+  channelHandle?: string
+  subscriberCount?: string
+  videoCount?: string
+  thumbnailUrl?: string
 }
 
-export interface GoogleOAuthError {
-  type: string;
-  message: string;
+export interface YouTubeResponse {
+  connected: boolean
+  videos: Video[]
+  nextPageToken: string | null
+}
+
+export interface YouTubeSearchResponse {
+  videos: Video[]
+  nextPageToken: string | null
+}
+
+export interface VideoSelectorData {
+  videos: Video[]
+  nextPageToken: string | null
 }

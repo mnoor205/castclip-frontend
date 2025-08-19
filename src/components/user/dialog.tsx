@@ -15,20 +15,30 @@ import { AuthUserObject } from "@/lib/types"
 import { BillingSettings } from "./billing"
 import { AccountSettings } from "./account"
 import { getConnectedAccounts } from "@/actions/account"
+import { getUserYouTubeChannel } from "@/actions/youtube"
 
 type SettingsTab = "account" | "billing"
 
 export function SettingsDialog({ user }: { user: AuthUserObject}) {
     const [activeTab, setActiveTab] = useState<SettingsTab>("account")
     const [connectedAccounts, setConnectedAccounts] = useState<string[]>([])
+    const [youtubeChannel, setYoutubeChannel] = useState<{channelId: string; channelTitle: string} | null>(null)
 
     useEffect(() => {
-        getConnectedAccounts().then(setConnectedAccounts)
+        Promise.all([
+            getConnectedAccounts(),
+            getUserYouTubeChannel()
+        ]).then(([accounts, channel]) => {
+            setConnectedAccounts(accounts)
+            setYoutubeChannel(channel)
+        })
     }, [])
 
     const enrichedUser = {
         ...user,
         connectedAccounts,
+        youtubeChannelId: youtubeChannel?.channelId || null,
+        youtubeChannelTitle: youtubeChannel?.channelTitle || null,
     }
 
     return (

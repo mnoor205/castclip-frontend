@@ -16,8 +16,9 @@ import { AuthUserObject } from "@/lib/types"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { authClient } from "@/lib/auth-client"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { SettingsDialog } from "../user/dialog"
+import { cn } from "@/lib/utils"
 
 // Menu items.
 const items = [
@@ -35,6 +36,7 @@ const items = [
 
 export function AppSidebar({ user }: { user: AuthUserObject }) {
   const router = useRouter()
+  const pathname = usePathname()
 
   const handleSignOut = async () => {
     await authClient.signOut()
@@ -48,16 +50,28 @@ export function AppSidebar({ user }: { user: AuthUserObject }) {
           <SidebarGroupLabel className="flex w-full justify-center mb-6 py-2 h-auto text-gradient-primary text-4xl font-extrabold leading-none">CastClip</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild size="lg" className="[&>svg]:size-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span className="truncate transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const isActive = pathname.startsWith(item.url)
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      size="lg"
+                      className={cn(
+                        "[&>svg]:size-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0",
+                        isActive && "bg-gradient-primary text-white opacity-80 hover:text-white"
+                      )}
+                    >
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span className="truncate transition-all duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0">
+                          {item.title}
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

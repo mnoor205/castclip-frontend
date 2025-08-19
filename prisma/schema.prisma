@@ -16,19 +16,21 @@ datasource db {
 }
 
 model User {
-  id               String    @id
-  name             String
-  email            String
-  emailVerified    Boolean
-  image            String?
-  credits          Int       @default(10)
-  stripeCustomerId String?   @unique
-  createdAt        DateTime
-  updatedAt        DateTime
-  sessions         Session[]
-  accounts         Account[]
-  projects         Project[]
-  clips            Clip[]
+  id                    String    @id
+  name                  String
+  email                 String
+  emailVerified         Boolean
+  image                 String?
+  credits               Int       @default(10)
+  stripeCustomerId      String?   @unique
+  youtubeChannelId      String?   @unique
+  youtubeChannelTitle   String?
+  createdAt             DateTime
+  updatedAt             DateTime
+  sessions              Session[]
+  accounts              Account[]
+  projects              Project[]
+  clips                 Clip[]
 
   @@unique([email])
   @@map("user")
