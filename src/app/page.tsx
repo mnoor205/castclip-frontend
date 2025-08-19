@@ -299,8 +299,8 @@ export default async function Home() {
             <Card className="p-6">
               <CardContent className="p-0">
                 <div className="flex items-start gap-4">
-                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
-                    <UploadCloud className="h-6 w-6 text-gradient-primary" />
+                  <div className="bg-gradient-to-br from-sky-500 to-blue-500 p-3 rounded-lg">
+                    <UploadCloud className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Upload Files</h3>
@@ -313,8 +313,8 @@ export default async function Home() {
             <Card className="p-6">
               <CardContent className="p-0">
                 <div className="flex items-start gap-4">
-                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
-                    <Youtube className="h-6 w-6 text-gradient-primary" />
+                  <div className="bg-gradient-to-br from-pink-500 to-orange-500 p-3 rounded-lg">
+                    <Youtube className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Connect YouTube Channel</h3>
@@ -327,8 +327,8 @@ export default async function Home() {
             <Card className="p-6">
               <CardContent className="p-0">
                 <div className="flex items-start gap-4">
-                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-3 rounded-lg">
-                    <Link2 className="h-6 w-6 text-gradient-primary" />
+                  <div className="bg-gradient-to-br from-emerald-500 to-green-500 p-3 rounded-lg">
+                    <Link2 className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Use Links</h3>

@@ -248,14 +248,14 @@ async function filterPublicLongFormVideos(youtube: ReturnType<typeof google.yout
 
         const duration = item.contentDetails?.duration
         if (!duration) return false // Exclude videos without duration
-        // PT1M or PT1M0S means 1 minute. Anything less is a short.
-        // Formats like PT3M2S, PT1H, etc., are longer.
+        // Filter for videos that are 3 minutes or longer.
         const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
         if (!match) return true // Keep if format is weird, to be safe
         const hours = parseInt(match[1] || "0")
         const minutes = parseInt(match[2] || "0")
-        if (hours > 0 || minutes > 0) return true
-        return false
+        const seconds = parseInt(match[3] || "0")
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds
+        return totalSeconds >= 180
       })
       .map((item) => item.id)
   )
