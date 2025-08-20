@@ -1,7 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Film } from "lucide-react";
+import { Film, RefreshCw } from "lucide-react";
+import { Button } from "../ui/button";
+import { useTransition } from "react";
+import { revalidateProjectPages } from "@/actions/revalidate";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export type ProjectListItem = {
   id: string | number;
@@ -10,7 +17,8 @@ export type ProjectListItem = {
   clips: number;
   createdAt: string; // ISO string for serialization
   thumbnail?: string;
-}
+  failureReason?: string | null;
+};
 
 function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
@@ -28,12 +36,25 @@ function getStatusColor(status: string) {
 }
 
 export default function ProjectsPage({ projects }: { projects: ProjectListItem[] }) {
+  const [isPending, startTransition] = useTransition();
+
   return (
     <div className="w-full">
       <div className="max-w-5xl mx-auto">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold">Your Projects</h1>
-          <p className="text-sm text-muted-foreground mt-1">{projects.length} total</p>
+        <div className="mb-6 sm:mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Your Projects</h1>
+            <p className="text-sm text-muted-foreground mt-1">{projects.length} total</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+            onClick={() => startTransition(() => revalidateProjectPages())}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
 
         {projects.length === 0 ? (
@@ -69,7 +90,24 @@ export default function ProjectsPage({ projects }: { projects: ProjectListItem[]
 
                 {/* Status badge */}
                 <div className="absolute top-2 left-2">
-                  <Badge className={`text-white text-[10px] ${getStatusColor(project.status)}`}>{project.status}</Badge>
+                  {project.status === "failed" && project.failureReason ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge className={cn("text-white text-[10px]", getStatusColor(project.status), "hover:brightness-125 cursor-help")}>
+                            {project.status}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{project.failureReason}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <Badge className={cn("text-white text-[10px]", getStatusColor(project.status))}>
+                      {project.status}
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Bottom meta */}

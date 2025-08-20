@@ -1,238 +1,275 @@
 import { prismaDB } from "@/lib/prisma";
 import { inngest } from "./client";
-import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
+import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import { sendMail } from "@/lib/send-mail";
 
+const PROCESSING_TIMEOUT = "45m"; // Generous timeout for a 30-min job
+
+// 1. The Initiator: Starts the process and sets up a safety net.
 export const processVideo = inngest.createFunction(
   {
     id: "process-video",
-    retries: 1, // Tries 2 times
+    retries: 2,
     concurrency: {
-      limit: 1,
+      limit: 1, // Only one job per user at a time.
       key: "event.data.userId",
     },
   },
   { event: "process-video-events" },
   async ({ event, step }) => {
-    const { projectId, clipCount, captionStyle } = event.data
+    const { projectId, clipCount, captionStyle } = event.data;
 
-    try {
-      const { userId, credits, email, name, s3Key, externalUrl, source } = await step.run(
-        "check-credits",
-        async () => {
-          const project = await prismaDB.project.findUniqueOrThrow({
-            where: {
-              id: projectId,
-            },
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  credits: true,
-                  email: true,
-                  name: true,
-                },
-              },
-              s3Key: true,
-              externalUrl: true,
-              source: true,
-            },
-          })
-
-          return {
-            userId: project.user.id,
-            credits: project.user.credits,
-            email: project.user.email,
-            name: project.user.name,
-            s3Key: project.s3Key,
-            externalUrl: project.externalUrl,
-            source: project.source,
-          }
-        }
-      )
-
-      // Calculate how many clips the user can afford (each clip costs 2 credits)
-      const affordableClipCount = Math.min(Math.floor(credits / 2), clipCount);
-      
-      if (affordableClipCount > 0) {
-        await step.run("set-status-processing", async () => {
-          await prismaDB.project.update({
-            where: {
-              id: projectId,
-            },
-            data: {
-              status: "processing",
-            },
-          })
-        })
-
-        await step.run("process-video-external", async () => {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 20 * 60 * 1000) // 20 minute timeout
-
-          const keyForProcessing = source === "UPLOADED_FILE" ? s3Key : externalUrl
-          if (!keyForProcessing) {
-            throw new Error(`No processing key found for project ${projectId} with source ${source}`)
-          }
-
-          try {
-            const response = await step.fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
-              method: "POST",
-              body: JSON.stringify({
-                s3_key: keyForProcessing,
-                ids: `${userId}/${projectId}`,
-                clip_count: affordableClipCount,
-                style: captionStyle,
-              }),
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`,
-              },
-              signal: controller.signal,
-            })
-
-            clearTimeout(timeoutId)
-
-            if (!response.ok) {
-              throw new Error(`Video processing failed with status: ${response.status}`)
-            }
-            
-            return response
-          } catch (error) {
-            clearTimeout(timeoutId)
-            if (error instanceof Error && error.name === 'AbortError') {
-              throw new Error('Video processing timed out after 20 minutes')
-            }
-            throw error
-          }
-        })
-
-        if (source === "VIDEO_URL") {
-          await step.run("save-s3-key-for-url-project", async () => {
-            // Reconstruct the S3 key based on the folder structure
-            const generatedS3Key = `${userId}/${projectId}/original.mp4`;
-            await prismaDB.project.update({
-              where: { id: projectId },
-              data: { s3Key: generatedS3Key },
-            });
-          });
-        }
-
-        const { clipsFound } = await step.run("create-clips-in-db", async () => {
-          // This logic might need adjustment if clips for URL-based projects are stored differently
-          const folderPrefix = `${userId}/${projectId}`
-
-          const allKeys = await lists3ObjectsByPrefix(folderPrefix)
-
-          const clipKeys = allKeys.filter(
-            (key): key is string =>
-              key !== undefined && !key.endsWith("original.mp4")
-          )
-
-          if (clipKeys.length > 0) {
-            await prismaDB.clip.createMany({
-              data: clipKeys.map((clipKey) => ({
-                s3Key: clipKey,
-                projectId: projectId,
-                userId
-              }))
-            })
-          }
-
-          return { clipsFound: clipKeys.length }
-        })
-
-        await step.run("deduct-credits", async () => {
-          // Only deduct credits for clips that were actually created
-          const creditsToDeduct = Math.min(clipsFound, affordableClipCount) * 2
-          await prismaDB.user.update({
-            where: {
-              id: userId
-            },
-            data: {
-              credits: {
-                decrement: creditsToDeduct
-              }
-            }
-          })
-        })
-
-        await step.run("set-status-processed", async () => {
-          await prismaDB.project.update({
-            where: {
-              id: projectId,
-            },
-            data: {
-              status: "processed"
-            }
-          })
-        })
-
-        // Send email notification in a separate, non-blocking step
-        await step.run("send-email-notification", async () => {
-          try {
-            await inngest.send({
-              name: "send-notification-email",
-              data: {
-                email,
-                name,
-                clipsCount: clipsFound
-              }
-            })
-          } catch (error) {
-            // Log the error but don't throw it - email failure shouldn't affect video processing status
-            console.error("Failed to trigger email notification:", error)
-          }
-        })
-
-      } else {
-        await step.run("set-status-no-credits", async () => {
-          await prismaDB.project.update({
-            where: {
-              id: projectId,
-            },
-            data: {
-              status: "no credits"
-            }
-          })
-        })
+    const { userId, credits, s3Key, externalUrl, source } = await step.run(
+      "get-project-details",
+      async () => {
+        const project = await prismaDB.project.findUniqueOrThrow({
+          where: { id: projectId },
+          select: {
+            user: { select: { id: true, credits: true } },
+            s3Key: true,
+            externalUrl: true,
+            source: true,
+          },
+        });
+        return {
+          userId: project.user.id,
+          credits: project.user.credits,
+          s3Key: project.s3Key,
+          externalUrl: project.externalUrl,
+          source: project.source,
+        };
       }
-    } catch (error) {
-      console.error("Video processing failed:", error)
-      await step.run("set-status-failed", async () => {
-      await prismaDB.project.update({
-        where: {
-          id: projectId,
-        },
-        data: {
-          status: "failed"
-        }
+    );
+
+    const affordableClipCount = Math.min(Math.floor(credits / 2), clipCount);
+
+    if (affordableClipCount <= 0) {
+      await step.run("set-status-no-credits", () =>
+        prismaDB.project.update({
+          where: { id: projectId },
+          data: { status: "no credits" },
         })
-      })
+      );
+      return { status: "skipped", reason: "Insufficient credits" };
     }
-  },
-);
 
-export const sendNotificationEmail = inngest.createFunction(
-  {
-    id: "send-notification-email",
-    retries: 1, // Try email sending up to 2 times
-  },
-  { event: "send-notification-email" },
-  async ({ event, step }) => {
-    const { email, name, clipsCount } = event.data
-
-    await step.run("send-email", async () => {
-      await sendMail({
-        to: email,
-        subject: "Your Clips Are Ready!",
-        text: `Hi! Your ${clipsCount} video clip${clipsCount !== 1 ? 's have' : ' has'} been generated. Go to your dashboard to view and download them.`,
-        html: `<p>Hi ${name}!</p><p>Your ${clipsCount} video clip${clipsCount !== 1 ? 's have' : ' has'} been generated. Go to your <a href="https://castclip.app/dashboard">dashboard</a> to view and download them.</p>`
+    await step.run("set-status-processing", () =>
+      prismaDB.project.update({
+        where: { id: projectId },
+        data: { status: "processing" },
       })
-    })
+    );
+
+    await step.run("trigger-video-processing-service", async () => {
+      const keyForProcessing = source === "UPLOADED_FILE" ? s3Key : externalUrl;
+      if (!keyForProcessing) {
+        throw new Error(`No processing key for project ${projectId}`);
+      }
+      
+      const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/modal`;
+        
+      const response = await fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
+        method: "POST",
+        body: JSON.stringify({
+          s3_key: keyForProcessing,
+          ids: `${userId}/${projectId}`,
+          clip_count: affordableClipCount,
+          style: captionStyle,
+          webhook_url: webhookUrl,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Trigger failed: ${response.status}`);
+      }
+    });
+
+    if (source === "VIDEO_URL") {
+      await step.run("save-s3-key-for-url-project", () =>
+        prismaDB.project.update({
+          where: { id: projectId },
+          data: { s3Key: `${userId}/${projectId}/original.mp4` },
+        })
+      );
+    }
+    
+    // Safety Net: Schedule a guardian to check on this job later.
+    await step.sleep("wait-for-timeout", PROCESSING_TIMEOUT);
+    
+    await step.sendEvent("check-timeout", {
+      name: "check-processing-timeout",
+      data: { projectId },
+    });
+    
+    return { status: "initiated" };
   }
 );
 
+// 2. The Finisher: Handles the successful completion of a job.
+export const handleVideoProcessed = inngest.createFunction(
+  {
+    id: "handle-video-processed",
+    retries: 3, // Retry DB operations on transient errors
+  },
+  { event: "video-processed-event" },
+  async ({ event, step }) => {
+    const { projectId } = event.data;
+
+    const project = await step.run("get-project-and-user-data", () =>
+      prismaDB.project.findUniqueOrThrow({
+        where: { id: projectId },
+        select: {
+          clipCount: true,
+          user: { select: { id: true, credits: true, email: true, name: true } },
+        },
+      })
+    );
+    
+    if (!project) return { status: "skipped", reason: "Project not found" };
+
+    const folderPrefix = `${project.user.id}/${projectId}`;
+    const allKeys = await step.run("list-s3-objects", () => lists3ObjectsByPrefix(folderPrefix));
+    const clipKeys = allKeys.filter((key) => key && !key.endsWith("original.mp4")) as string[];
+    
+    if (clipKeys.length > 0) {
+      await step.run("create-clip-records", () =>
+        prismaDB.clip.createMany({
+          data: clipKeys.map((clipKey) => ({
+            s3Key: clipKey,
+            projectId,
+            userId: project.user.id,
+          })),
+        })
+      );
+    }
+
+    const affordableClipCount = Math.min(Math.floor(project.user.credits / 2), project.clipCount);
+    const creditsToDeduct = Math.min(clipKeys.length, affordableClipCount) * 2;
+    if (creditsToDeduct > 0) {
+      await step.run("deduct-credits", () =>
+        prismaDB.user.update({
+          where: { id: project.user.id },
+          data: { credits: { decrement: creditsToDeduct } },
+        })
+      );
+    }
+
+    await step.run("set-status-processed", () =>
+      prismaDB.project.update({
+        where: { id: projectId },
+        data: { status: "processed" },
+      })
+    );
+    
+    if (clipKeys.length > 0) {
+      await step.sendEvent("send-email-notification", {
+        name: "send-notification-email",
+        data: {
+          email: project.user.email,
+          name: project.user.name,
+          clipsCount: clipKeys.length,
+        },
+      });
+    }
+
+    // --- Final Step: Cancel the timeout guardian from the original run ---
+    // await step.cancel("cancel-timeout-guardian", {
+    //   runId: runId,
+    //   stepId: "wait-for-timeout", // This must match the name of the step.sleep() call.
+    // });
+
+    return { status: "completed", clipsCreated: clipKeys.length };
+  }
+);
+
+// New Function: Handles failures reported by the external service.
+export const handleVideoProcessingFailure = inngest.createFunction(
+  { id: "handle-video-processing-failure", retries: 2 },
+  { event: "video-processing-failed-event" },
+  async ({ event, step }) => {
+    const { projectId, reason } = event.data;
+
+    await step.run("set-status-failed-with-reason", () =>
+      prismaDB.project.update({
+        where: { id: projectId },
+        data: { 
+          status: "failed",
+          failureReason: reason,
+        },
+      })
+    );
+
+    console.error(`Project ${projectId} marked as failed. Reason: ${reason}`);
+    
+    return { status: "failure_handled" };
+  }
+);
+
+
+// 3. The Guardian: Our safety net for jobs that get stuck.
+export const checkProcessingTimeout = inngest.createFunction(
+  { id: "check-processing-timeout", retries: 2 },
+  { event: "check-processing-timeout" },
+  async ({ event, step }) => {
+    const { projectId } = event.data;
+
+    const project = await step.run("get-project-status", () =>
+      prismaDB.project.findUnique({
+        where: { id: projectId },
+        select: { status: true },
+      })
+    );
+
+    if (project?.status === "processing") {
+      await step.run("set-status-failed", () =>
+        prismaDB.project.update({
+          where: { id: projectId },
+          data: { 
+            status: "failed",
+            failureReason: `Processing timed out after ${PROCESSING_TIMEOUT}.`,
+          },
+        })
+      );
+      return { status: "failed", reason: "Processing timed out" };
+    }
+
+    return { status: "ok", reason: "Project already completed or failed" };
+  }
+);
+
+// Email Sending Function (remains the same)
+export const sendNotificationEmail = inngest.createFunction(
+  {
+    id: "send-notification-email",
+    retries: 2,
+  },
+  { event: "send-notification-email" },
+  async ({ event, step }) => {
+    const { email, name, clipsCount } = event.data;
+    
+    await step.run("send-email", () =>
+      sendMail({
+        to: email,
+        subject: "Your Clips Are Ready!",
+        text: `Hi ${name}!\n\nYour ${clipsCount} video clips have been generated. Go to your projects page to view and download them. Thanks for using CastClip!\n\n- CastClip Team\n\nFor any questions and support feel free to reach out at email@castclip.app`,
+        html: `
+          <p>Hi ${name}!</p>
+          <p>Your ${clipsCount} video clips have been generated. Go to your <a href="${process.env.NEXT_PUBLIC_APP_URL}/projects">projects page</a> to view and download them. Thanks for using CastClip!</p>
+          <p>- CastClip Team</p>
+          <br>
+          <p>For any questions and support feel free to reach out at <a href="mailto:email@castclip.app">email@castclip.app</a></p>
+        `,
+      })
+    );
+    return { status: "sent" };
+  }
+);
+
+// S3 Utility Function (remains the same)
 async function lists3ObjectsByPrefix(prefix: string) {
   const s3Client = new S3Client({
     region: "auto",
@@ -240,14 +277,12 @@ async function lists3ObjectsByPrefix(prefix: string) {
     credentials: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    }
-  })
-
+    },
+  });
   const listCommand = new ListObjectsV2Command({
     Bucket: process.env.R2_BUCKET_NAME!,
-    Prefix: prefix
-  })
-
-  const response = await s3Client.send(listCommand)
-  return response.Contents?.map((item) => item.Key).filter(Boolean) || []
+    Prefix: prefix,
+  });
+  const response = await s3Client.send(listCommand);
+  return response.Contents?.map((item) => item.Key).filter(Boolean) || [];
 }

@@ -94,6 +94,7 @@ model Project {
   externalUrl  String?
   displayName  String?
   thumbnailUrl String?
+  failureReason String?
 
   source       ProjectSource @default(UPLOADED_FILE)
   status       String        @default("queued") // processing, processed, no credits

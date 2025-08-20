@@ -1,12 +1,14 @@
 import { serve } from "inngest/next";
 import { inngest } from "../../../inngest/client";
-import { processVideo, sendNotificationEmail } from "@/inngest/functions";
+import { 
+  processVideo, 
+  sendNotificationEmail,
+  handleVideoProcessed,
+  handleVideoProcessingFailure,
+  checkProcessingTimeout
+} from "@/inngest/functions";
 
-// Create an API that serves zero functions
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [
-    processVideo,
-    sendNotificationEmail
-  ],
+  functions: [processVideo, sendNotificationEmail, handleVideoProcessed, handleVideoProcessingFailure, checkProcessingTimeout],
 });

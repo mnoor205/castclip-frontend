@@ -1,10 +1,10 @@
 "use client"
 
 import { Badge } from "../ui/badge"
-import { ArrowRight, ChevronRight } from "lucide-react"
+import { ArrowRight, ChevronRight, RefreshCw } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import { getYouTubeVideos } from "@/actions/youtube"
 import { toast } from "sonner"
 import UrlModal from "./url-modal"
 import type { YouTubeResponse } from "@/lib/types"
+import { revalidateProjectPages } from "@/actions/revalidate"
 
 type Project = {
   id: string | number
@@ -78,6 +79,7 @@ export default function DashboardPage({ userName, projects = [], credits = 0 }: 
   const [selected, setSelected] = useState<(typeof GenerateOptions)[number] | null>(null)
   const [youtubeDataCache, setYoutubeDataCache] = useState<YouTubeResponse | null>(null)
   const [isYoutubeLoading, setIsYoutubeLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const handleOpenYouTubeModal = () => {
     // If we have no data, it's the first load, so show a loader.
@@ -134,10 +136,21 @@ export default function DashboardPage({ userName, projects = [], credits = 0 }: 
 
       {/* Recent Projects */}
       <div className="w-full max-w-4xl mx-auto">
-        <Link href="/projects" className="flex items-center gap-2 mb-4 group w-fit">
-          <h2 className="text-xl sm:text-2xl font-semibold group-hover:underline">Your Recent Projects</h2>
-          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" aria-hidden="true" />
-        </Link>
+        <div className="flex items-center justify-between mb-4">
+          <Link href="/projects" className="flex items-center gap-2 group w-fit">
+            <h2 className="text-xl sm:text-2xl font-semibold group-hover:underline">Your Recent Projects</h2>
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground" aria-hidden="true" />
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+            onClick={() => startTransition(() => revalidateProjectPages())}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
         <div className="space-y-3">
           {projects.slice(0, 4).map((project) => (
             <Link
