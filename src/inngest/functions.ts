@@ -9,7 +9,7 @@ const PROCESSING_TIMEOUT = "45m"; // Generous timeout for a 30-min job
 export const processVideo = inngest.createFunction(
   {
     id: "process-video",
-    retries: 2,
+    retries: 0,
     concurrency: {
       limit: 1, // Only one job per user at a time.
       key: "event.data.userId",
