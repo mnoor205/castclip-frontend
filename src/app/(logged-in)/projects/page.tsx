@@ -20,6 +20,7 @@ export default async function ProjectsPage() {
           status: true,
           createdAt: true,
           thumbnailUrl: true,
+          failureReason: true,
           _count: { select: { Clip: true } },
         },
       },
@@ -33,6 +34,7 @@ export default async function ProjectsPage() {
     clips: p._count.Clip,
     createdAt: p.createdAt.toISOString(),
     thumbnail: p.thumbnailUrl ?? undefined,
+    failureReason: p.failureReason,
   }));
 
   return <ProjectsPageView projects={items} />;

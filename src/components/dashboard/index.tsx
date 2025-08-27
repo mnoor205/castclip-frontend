@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import UploadModal from "./upload-modal"
-// import ChannelModal from "./channel-modal"
-// import { getYouTubeVideos } from "@/actions/youtube"
-// import { toast } from "sonner"
-// import UrlModal from "./url-modal"
-import YouTubeOutageModal from "./youtube-outage-modal"
-// import type { YouTubeResponse } from "@/lib/types"
+import ChannelModal from "./channel-modal"
+import { getYouTubeVideos } from "@/actions/youtube"
+import { toast } from "sonner"
+import UrlModal from "./url-modal"
+import type { YouTubeResponse } from "@/lib/types"
 import { revalidateProjectPages } from "@/actions/revalidate"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
+import { cn } from "@/lib/utils"
 
 type Project = {
   id: string | number
@@ -30,6 +31,7 @@ type Project = {
   status: string
   clips: number
   createdAt?: string
+  failureReason?: string | null
 }
 
 const GenerateOptions = [
@@ -80,41 +82,36 @@ interface DashboardProps {
 export default function DashboardPage({ userName, projects = [], credits = 0 }: DashboardProps) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<(typeof GenerateOptions)[number] | null>(null)
-  // const [youtubeDataCache, setYoutubeDataCache] = useState<YouTubeResponse | null>(null)
-  // const [isYoutubeLoading, setIsYoutubeLoading] = useState(false)
+  const [youtubeDataCache, setYoutubeDataCache] = useState<YouTubeResponse | null>(null)
+  const [isYoutubeLoading, setIsYoutubeLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  // const handleOpenYouTubeModal = () => {
-  //   // If we have no data, it's the first load, so show a loader.
-  //   if (!youtubeDataCache) {
-  //     setIsYoutubeLoading(true)
-  //     getYouTubeVideos()
-  //       .then((data) => setYoutubeDataCache(data))
-  //       .catch((err) => toast.error("Failed to get YouTube videos", { description: err.message }))
-  //       .finally(() => setIsYoutubeLoading(false))
-  //   } else {
-  //     // If we do have data, revalidate in the background to get updates.
-  //     getYouTubeVideos().then((data) => setYoutubeDataCache(data))
-  //   }
-  // }
+  const handleOpenYouTubeModal = () => {
+    // If we have no data, it's the first load, so show a loader.
+    if (!youtubeDataCache) {
+      setIsYoutubeLoading(true)
+      getYouTubeVideos()
+        .then((data) => setYoutubeDataCache(data))
+        .catch((err) => toast.error("Failed to get YouTube videos", { description: err.message }))
+        .finally(() => setIsYoutubeLoading(false))
+    } else {
+      // If we do have data, revalidate in the background to get updates.
+      getYouTubeVideos().then((data) => setYoutubeDataCache(data))
+    }
+  }
 
   const handleOpenOption = (opt: (typeof GenerateOptions)[number]) => {
     setSelected(opt)
     setOpen(true)
-    // YouTube features are temporarily disabled due to downloader issues
-    if (opt.highlightedText === "Youtube Channel" || opt.highlightedText === "URL") {
-      // Don't fetch YouTube data, just show the outage modal
-      return
+    if (opt.highlightedText === "Youtube Channel") {
+      handleOpenYouTubeModal()
     }
-    // if (opt.highlightedText === "Youtube Channel") {
-    //   handleOpenYouTubeModal()
-    // }
   }
 
-  // const handleYouTubeSuccess = () => {
-  //   // Refresh YouTube data after successful connection
-  //   handleOpenYouTubeModal()
-  // }
+  const handleYouTubeSuccess = () => {
+    // Refresh YouTube data after successful connection
+    handleOpenYouTubeModal()
+  }
 
   return (
     <div className="w-full">
@@ -181,7 +178,22 @@ export default function DashboardPage({ userName, projects = [], credits = 0 }: 
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate text-base sm:text-lg">{project.title}</div>
                 <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge className={`text-white text-xs ${getStatusColor(project.status)}`}>{project.status}</Badge>
+                  {project.status === "Failed" && project.failureReason ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge className={cn("text-white text-xs", getStatusColor(project.status), "hover:brightness-125 cursor-help")}>
+                            {project.status}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{project.failureReason}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <Badge className={`text-white text-xs ${getStatusColor(project.status)}`}>{project.status}</Badge>
+                  )}
                   {project.createdAt && <span>• {new Date(project.createdAt).toLocaleDateString()}</span>}
                 </div>
               </div>
@@ -197,8 +209,16 @@ export default function DashboardPage({ userName, projects = [], credits = 0 }: 
       {/* Modal routing */}
       {selected?.highlightedText === "File" ? (
         <UploadModal open={open} onOpenChange={setOpen} credits={credits} />
-      ) : selected?.highlightedText === "Youtube Channel" || selected?.highlightedText === "URL" ? (
-        <YouTubeOutageModal open={open} onOpenChange={setOpen} />
+      ) : selected?.highlightedText === "Youtube Channel" ? (
+        <ChannelModal
+          open={open}
+          onOpenChange={setOpen}
+          initialData={youtubeDataCache}
+          isLoading={isYoutubeLoading}
+          onDataNeedsRefresh={handleYouTubeSuccess}
+        />
+      ) : selected?.highlightedText === "URL" ? (
+        <UrlModal open={open} onOpenChange={setOpen} />
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-4xl md:max-w-5xl lg:max-w-6xl">

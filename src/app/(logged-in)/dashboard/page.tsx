@@ -29,6 +29,7 @@ export default async function Dashboard() {
                     status: true,
                     createdAt: true,
                     thumbnailUrl: true,
+                    failureReason: true,
                     _count: {
                         select: {
                             Clip: true
@@ -51,6 +52,7 @@ export default async function Dashboard() {
         status: project.status.charAt(0).toUpperCase() + project.status.slice(1),
         clips: project._count.Clip,
         createdAt: project.createdAt.toISOString(),
+        failureReason: project.failureReason,
     }))
 
     return <DashboardPage userName={user.name} projects={formattedFiles} credits={userData.credits} />

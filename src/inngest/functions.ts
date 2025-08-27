@@ -19,93 +19,116 @@ export const processVideo = inngest.createFunction(
   async ({ event, step }) => {
     const { projectId, clipCount, captionStyle } = event.data;
 
-    const { userId, credits, s3Key, externalUrl, source } = await step.run(
-      "get-project-details",
-      async () => {
-        const project = await prismaDB.project.findUniqueOrThrow({
+    try {
+      const { userId, credits, s3Key, externalUrl, source } = await step.run(
+        "get-project-details",
+        async () => {
+          const project = await prismaDB.project.findUniqueOrThrow({
+            where: { id: projectId },
+            select: {
+              user: { select: { id: true, credits: true } },
+              s3Key: true,
+              externalUrl: true,
+              source: true,
+            },
+          });
+          return {
+            userId: project.user.id,
+            credits: project.user.credits,
+            s3Key: project.s3Key,
+            externalUrl: project.externalUrl,
+            source: project.source,
+          };
+        }
+      );
+
+      const affordableClipCount = Math.min(Math.floor(credits / 2), clipCount);
+
+      if (affordableClipCount <= 0) {
+        await step.run("set-status-no-credits", () =>
+          prismaDB.project.update({
+            where: { id: projectId },
+            data: { status: "no credits" },
+          })
+        );
+        return { status: "skipped", reason: "Insufficient credits" };
+      }
+
+      await step.run("set-status-processing", () =>
+        prismaDB.project.update({
           where: { id: projectId },
-          select: {
-            user: { select: { id: true, credits: true } },
-            s3Key: true,
-            externalUrl: true,
-            source: true,
+          data: { status: "processing" },
+        })
+      );
+
+      await step.run("trigger-video-processing-service", async () => {
+        const keyForProcessing = source === "UPLOADED_FILE" ? s3Key : externalUrl;
+        if (!keyForProcessing) {
+          throw new Error(`No processing key for project ${projectId}`);
+        }
+        
+        const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/modal`;
+          
+        const response = await fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
+          method: "POST",
+          body: JSON.stringify({
+            s3_key: keyForProcessing,
+            ids: `${userId}/${projectId}`,
+            clip_count: affordableClipCount,
+            style: captionStyle,
+            webhook_url: webhookUrl,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`,
           },
         });
-        return {
-          userId: project.user.id,
-          credits: project.user.credits,
-          s3Key: project.s3Key,
-          externalUrl: project.externalUrl,
-          source: project.source,
-        };
-      }
-    );
 
-    const affordableClipCount = Math.min(Math.floor(credits / 2), clipCount);
-
-    if (affordableClipCount <= 0) {
-      await step.run("set-status-no-credits", () =>
-        prismaDB.project.update({
-          where: { id: projectId },
-          data: { status: "no credits" },
-        })
-      );
-      return { status: "skipped", reason: "Insufficient credits" };
-    }
-
-    await step.run("set-status-processing", () =>
-      prismaDB.project.update({
-        where: { id: projectId },
-        data: { status: "processing" },
-      })
-    );
-
-    await step.run("trigger-video-processing-service", async () => {
-      const keyForProcessing = source === "UPLOADED_FILE" ? s3Key : externalUrl;
-      if (!keyForProcessing) {
-        throw new Error(`No processing key for project ${projectId}`);
-      }
-      
-      const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/modal`;
-        
-      const response = await fetch(process.env.PROCESS_VIDEO_ENDPOINT!, {
-        method: "POST",
-        body: JSON.stringify({
-          s3_key: keyForProcessing,
-          ids: `${userId}/${projectId}`,
-          clip_count: affordableClipCount,
-          style: captionStyle,
-          webhook_url: webhookUrl,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.PROCESS_VIDEO_ENDPOINT_AUTH}`,
-        },
+        if (!response.ok) {
+          const responseText = await response.text();
+          const errorMessage = `External video processing service failed: ${response.status} ${response.statusText}. Response: ${responseText}`;
+          console.error(errorMessage);
+          throw new Error(errorMessage);
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Trigger failed: ${response.status}`);
+      if (source === "VIDEO_URL") {
+        await step.run("save-s3-key-for-url-project", () =>
+          prismaDB.project.update({
+            where: { id: projectId },
+            data: { s3Key: `${userId}/${projectId}/original.mp4` },
+          })
+        );
       }
-    });
-
-    if (source === "VIDEO_URL") {
-      await step.run("save-s3-key-for-url-project", () =>
+      
+      // Safety Net: Schedule a guardian to check on this job later.
+      await step.sleep("wait-for-timeout", PROCESSING_TIMEOUT);
+      
+      await step.sendEvent("check-timeout", {
+        name: "check-processing-timeout",
+        data: { projectId },
+      });
+      
+      return { status: "initiated" };
+    } catch (error) {
+      // If anything fails in the process, mark the project as failed
+      console.error(`ProcessVideo function failed for project ${projectId}:`, error);
+      
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      await step.run("set-status-failed-on-error", () =>
         prismaDB.project.update({
           where: { id: projectId },
-          data: { s3Key: `${userId}/${projectId}/original.mp4` },
+          data: { 
+            status: "failed",
+            failureReason: errorMessage,
+          },
         })
       );
+      
+      // Re-throw the error so Inngest knows this function failed
+      throw error;
     }
-    
-    // Safety Net: Schedule a guardian to check on this job later.
-    await step.sleep("wait-for-timeout", PROCESSING_TIMEOUT);
-    
-    await step.sendEvent("check-timeout", {
-      name: "check-processing-timeout",
-      data: { projectId },
-    });
-    
-    return { status: "initiated" };
   }
 );
 
