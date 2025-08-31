@@ -89,8 +89,10 @@ export default function UrlModal({ open, onOpenChange }: UrlModalProps) {
         captionStyle,
       })
 
-      toast.success("Video sent for processing!", {
-        description: "We'll send you an email when your clips are ready.",
+      toast.success("Video Started Processing!", {
+        description:
+          "Your video has begun processing, it may take up to 15 minutes. We will send you an email when processing is complete!",
+        duration: 8000,
       })
       onOpenChange(false)
     } catch (error) {

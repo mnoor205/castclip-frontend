@@ -22,7 +22,7 @@ const plans: PricingPlan[] = [
   {
     title: "Medium Pack",
     price: "$24.99",
-    description: "Best value for regular podcasters",
+    description: "Best value for regular clippers",
     features: ["150 credits", "No expiration", "Download all clips", "Generate up to 75 clips"],
     buttonText: "Buy 150 credits",
     buttonVariant: "default",

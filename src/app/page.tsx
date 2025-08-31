@@ -98,8 +98,8 @@ export default async function Home() {
   // features section is rendered inline below the hero
 
   const stats = [
-    { number: "1000+", label: "Clips Generated" },
-    { number: "10+", label: "Podcasters" },
+    { number: "2000+", label: "Clips Generated" },
+    { number: "20+", label: "Clippers" },
     { number: "500%", label: "Avg. Growth" },
     { number: "95%", label: "Satisfaction Rate" },
   ];
@@ -184,15 +184,15 @@ export default async function Home() {
           <div className="flex justify-center mb-6">
             <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
               <Sparkles className="h-4 w-4 mr-2" />
-              Join 10+ successful podcasters
+              Join 20+ successful clippers
             </Badge>
           </div>
           
           <h1 className="text-4xl sm:text-6xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-            Turn Your Business Podcast into 
+            Turn 1 Long Podcast into
             <br />
             <span className="text-gradient-primary">
-              Viral Short Clips {" "}
+              10 Viral Short Clips {" "}
             </span>
             in Minutes
           </h1>
@@ -522,7 +522,7 @@ export default async function Home() {
             Ready to 10x Your Podcast Growth?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join 10+ podcasters who are already growing their audience with AI-powered clips. 
+            Join 20+ clippers who are already growing their audience with AI-powered clips. 
             Start free today—no credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -555,8 +555,8 @@ export default async function Home() {
                 Turn your podcasts into viral social media clips with AI.
               </p>
               <div className="flex gap-4">
-                <Badge variant="outline">10+ Users</Badge>
-                <Badge variant="outline">1k+ Clips</Badge>
+                <Badge variant="outline">20+ Users</Badge>
+                <Badge variant="outline">2k+ Clips</Badge>
               </div>
             </div>
             
