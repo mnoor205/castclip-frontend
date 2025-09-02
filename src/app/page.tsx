@@ -1,6 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import { getUserData } from "@/actions/user";
 import { Button } from "@/components/ui/button";
+import Navbar from "@/components/navigation/navbar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -142,40 +143,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen">
-      {/* Header */}
-      <header className="flex justify-between items-center px-4 sm:px-6 md:px-12 py-3 sticky top-0 bg-transparent backdrop-blur-md z-50 border-b border-white/20 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span className="text-xl font-bold text-gradient-primary">CastClip</span>
-        </div>
-        <nav className="hidden md:flex gap-8 text-sm font-medium">
-          <Link href="#features" className="hover:text-primary transition-colors">Features</Link>
-          <Link href="#demo" className="hover:text-primary transition-colors">Demo</Link>
-          <Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link>
-          <Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link>
-        </nav>
-        <div className="flex items-center gap-3">
-          {user ? (
-            <Link href="/dashboard">
-              <Button variant="outline" className="font-medium px-4 py-2">
-                Dashboard
-              </Button>
-            </Link>
-          ) : (
-            <>
-              <Link href="/sign-in">
-                <Button variant="ghost" className="font-medium px-3 py-2 text-sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/sign-in">
-                <Button className="font-medium px-4 py-2 bg-gradient-primary hover:opacity-90 text-white border-0 text-sm">
-                  Get Started
-                </Button>
-              </Link>
-            </>
-          )}
-        </div>
-      </header>
+      <Navbar user={user} />
 
       {/* Hero Section */}
       <section className="relative px-4 py-20 sm:py-32 lg:py-24 overflow-hidden">
