@@ -157,10 +157,10 @@ export default async function Home() {
           </div>
           
           <h1 className="text-4xl sm:text-6xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-            Turn 1 Long Podcast into
+            From Podcast To
             <br />
             <span className="text-gradient-primary">
-              10 Viral Short Clips {" "}
+              10 Short Clips {" "}
             </span>
             in Minutes
           </h1>
