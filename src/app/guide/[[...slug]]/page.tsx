@@ -63,11 +63,11 @@ export default async function GuideCatchAllPage({ params }: { params: Promise<{ 
   const title = (guide as any).properties?.Title?.title?.[0]?.plain_text ?? "Introduction";
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
+    <div className="max-w-5xl mx-auto p-6 space-y-8">
       <h1 className="text-3xl font-bold">{title}</h1>
       {isInProgress ? (
         <div className="p-4 rounded-md bg-primary/30 border border-primary text-pink-800">
-          Coming soon. This guide is still in progress.
+          Coming soon. This part is still in progress.
         </div>
       ) : (
         <RenderBlocks blocks={blocks} />

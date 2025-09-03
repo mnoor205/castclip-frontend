@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 // helper to render rich_text (bold, italic, links, etc.)
 function renderText(richText: any[]) {
@@ -44,9 +45,65 @@ function renderText(richText: any[]) {
 }
 
 export default function RenderBlocks({ blocks }: { blocks: any[] }) {
+  // Group consecutive list items
+  const groupedBlocks: any[] = [];
+  let currentList: any[] = [];
+  let listType: string | null = null;
+
+  blocks.forEach((block: any) => {
+    const { type } = block;
+    
+    if (type === "bulleted_list_item" || type === "numbered_list_item") {
+      if (listType === type) {
+        currentList.push(block);
+      } else {
+        // Start new list
+        if (currentList.length > 0) {
+          groupedBlocks.push({ type: listType, items: currentList });
+        }
+        currentList = [block];
+        listType = type;
+      }
+    } else {
+      // End current list
+      if (currentList.length > 0) {
+        groupedBlocks.push({ type: listType, items: currentList });
+        currentList = [];
+        listType = null;
+      }
+      groupedBlocks.push(block);
+    }
+  });
+
+  // Add final list if exists
+  if (currentList.length > 0) {
+    groupedBlocks.push({ type: listType, items: currentList });
+  }
+
   return (
     <div className="space-y-6">
-      {blocks.map((block: any) => {
+      {groupedBlocks.map((block: any, index: number) => {
+        if (block.type === "bulleted_list_item") {
+          return (
+            <ul key={`bulleted-${index}`} className="list-disc ml-6 space-y-2">
+              {block.items.map((item: any) => (
+                <li key={item.id}>{renderText(item.bulleted_list_item.rich_text)}</li>
+              ))}
+            </ul>
+          );
+        }
+        
+        if (block.type === "numbered_list_item") {
+          return (
+            <ol key={`numbered-${index}`} className="list-decimal ml-6 space-y-2">
+              {block.items.map((item: any) => (
+                <li key={item.id}>{renderText(item.numbered_list_item.rich_text)}</li>
+              ))}
+            </ol>
+          );
+        }
+
+        // Handle individual blocks
         const { id, type } = block;
         const value = block[type];
 
@@ -75,18 +132,6 @@ export default function RenderBlocks({ blocks }: { blocks: any[] }) {
                 {renderText(value.rich_text)}
               </p>
             );
-          case "bulleted_list_item":
-            return (
-              <ul key={id} className="list-disc ml-6">
-                <li>{renderText(value.rich_text)}</li>
-              </ul>
-            );
-          case "numbered_list_item":
-            return (
-              <ol key={id} className="list-decimal ml-6">
-                <li>{renderText(value.rich_text)}</li>
-              </ol>
-            );
           case "quote":
             return (
               <blockquote
@@ -104,10 +149,13 @@ export default function RenderBlocks({ blocks }: { blocks: any[] }) {
             const caption = value.caption?.[0]?.plain_text || "";
             return (
               <figure key={id} className="my-4">
-                <img
+                <Image
                   src={url}
                   alt={caption}
-                  className="rounded-xl shadow-md"
+                  width={800}
+                  height={600}
+                  className="rounded-xl shadow-md w-full h-auto"
+                  unoptimized={url.includes('notion')}
                 />
                 {caption && (
                   <figcaption className="text-sm text-gray-500 mt-2">

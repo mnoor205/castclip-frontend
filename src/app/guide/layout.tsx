@@ -25,11 +25,11 @@ export default async function GuidesLayout({ children }: { children: React.React
           </Sheet>
         }
       />
-      <div className="flex flex-1">
-        <div className="hidden md:block">
+      <div className="flex flex-1 h-0">
+        <div className="hidden md:block fixed top-[73px] left-0 h-[calc(100vh-73px)] overflow-y-auto">
           <GuideSidebar />
         </div>
-        <main className="flex-1 p-8">{children}</main>
+        <main className="flex-1 p-8 overflow-y-auto md:ml-72">{children}</main>
       </div>
     </div>
 
