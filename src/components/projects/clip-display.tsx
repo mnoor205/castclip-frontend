@@ -67,7 +67,12 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
     <div className="flex w-full flex-col gap-2">
       <div className="relative w-full rounded-md overflow-hidden bg-muted aspect-[9/16]">
         <video
-          src={`https://castclip.revolt-ai.com/${clip.s3Key}`}
+          src={
+            clip.rawClipUrl
+              ?? (clip.s3Key
+                    ? (clip.s3Key.startsWith("http") ? clip.s3Key : `https://castclip.revolt-ai.com/${clip.s3Key}`)
+                    : undefined)
+          }
           controls
           ref={videoRef}
           preload="metadata"
@@ -118,7 +123,12 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
             </Button>
           </Link>
         ) : (
-          <Link href={`https://castclip.revolt-ai.com/${clip.s3Key}`}>
+          <Link href={
+            clip.rawClipUrl
+              ?? (clip.s3Key?.startsWith("http")
+                    ? clip.s3Key
+                    : `https://castclip.revolt-ai.com/${clip.s3Key}`)
+          }>
             <Button variant="outline" className="w-full">
               <Download className="mr-1.5 h-4 w-4" />
               Download

@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  // output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -16,23 +9,22 @@ datasource db {
 }
 
 model User {
-  id                    String    @id
-  name                  String
-  email                 String
-  emailVerified         Boolean
-  image                 String?
-  credits               Int       @default(10)
-  stripeCustomerId      String?   @unique
-  youtubeChannelId      String?   @unique
-  youtubeChannelTitle   String?
-  createdAt             DateTime
-  updatedAt             DateTime
-  sessions              Session[]
-  accounts              Account[]
-  projects              Project[]
-  clips                 Clip[]
+  id                  String    @id
+  name                String
+  email               String    @unique
+  emailVerified       Boolean
+  image               String?
+  credits             Int       @default(10)
+  stripeCustomerId    String?   @unique
+  createdAt           DateTime
+  updatedAt           DateTime
+  youtubeChannelId    String?   @unique
+  youtubeChannelTitle String?
+  clips               Clip[]
+  projects            Project[]
+  accounts            Account[]
+  sessions            Session[]
 
-  @@unique([email])
   @@map("user")
 }
 
@@ -56,7 +48,6 @@ model Account {
   accountId             String
   providerId            String
   userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -66,6 +57,7 @@ model Account {
   password              String?
   createdAt             DateTime
   updatedAt             DateTime
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
 }
@@ -81,49 +73,52 @@ model Verification {
   @@map("verification")
 }
 
+model Project {
+  id            String        @id @default(uuid())
+  s3Key         String?
+  displayName   String?
+  uploaded      Boolean       @default(false)
+  status        String        @default("queued")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userId        String
+  clipCount     Int           @default(1)
+  captionStyle  Int           @default(1)
+  externalUrl   String?
+  source        ProjectSource @default(UPLOADED_FILE)
+  thumbnailUrl  String?
+  failureReason String?
+  Clip          Clip[]
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([s3Key])
+  @@map("UploadedFile")
+}
+
+model Clip {
+  id              String   @id @default(uuid())
+  s3Key           String?  // legacy key for backward compatibility with existing clips
+  rawClipUrl      String?  // new field for raw clips from backend
+  renderedClipUrl String?  // Will be null until the user exports the final video
+  transcript      Json?    // Store the word-level transcript from the backend
+  hook            String?  // The AI-generated hook
+  start           Float?   // Start time in seconds from the original video
+  end             Float?   // End time in seconds from the original video
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @map("uploadedFileId")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([rawClipUrl])
+  @@index([s3Key])
+}
+
 enum ProjectSource {
   UPLOADED_FILE
   YOUTUBE_CHANNEL
   VIDEO_URL
-}
-
-model Project {
-  id           String  @id @default(uuid())
-  // For uploaded files we keep s3Key, for external sources we can store externalUrl
-  s3Key        String?
-  externalUrl  String?
-  displayName  String?
-  thumbnailUrl String?
-  failureReason String?
-
-  source       ProjectSource @default(UPLOADED_FILE)
-  status       String        @default("queued") // processing, processed, no credits
-  uploaded     Boolean       @default(false)
-  clipCount    Int           @default(1)
-  captionStyle Int           @default(1)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  Clip Clip[]
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  @@index([s3Key])
-  @@map("UploadedFile") // Keep existing table name for seamless migration
-}
-
-model Clip {
-  id        String   @id @default(uuid())
-  s3Key     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String?  @map("uploadedFileId")
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
-
-  @@index([s3Key])
 }
