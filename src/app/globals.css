@@ -1,6 +1,23 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Mobile optimizations for clip editor */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch-friendly inputs */
+@media (max-width: 768px) {
+  input, textarea, button {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* @custom-variant dark (&:is(.dark *)); */
