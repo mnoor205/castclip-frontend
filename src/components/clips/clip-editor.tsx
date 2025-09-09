@@ -42,7 +42,7 @@ export function ClipEditor({
           <div className="sticky top-4">
             <VideoPreview 
               videoUrl={videoUrl}
-              className="w-full max-w-[400px] mx-auto lg:max-w-none"
+              className="w-full max-w-[350px] mx-auto"
             />
           </div>
         </div>

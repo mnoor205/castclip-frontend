@@ -50,7 +50,7 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
     clips.forEach(clip => {
       initialStates[clip.id] = {
         clipId: clip.id,
-        transcript: Array.isArray(clip.transcript) ? clip.transcript : [],
+        transcript: Array.isArray(clip.transcript) ? clip.transcript as any[] : [],
         hook: clip.hook || '',
         hasChanges: false,
         isSaving: false
@@ -197,7 +197,7 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
       ...prev,
       [clipId]: {
         ...prev[clipId],
-        transcript: Array.isArray(clip.transcript) ? clip.transcript : [],
+        transcript: Array.isArray(clip.transcript) ? clip.transcript as any[] : [],
         hook: clip.hook || '',
         hasChanges: false
       }
@@ -251,72 +251,6 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
 
   return (
     <div className="w-full space-y-6">
-      {/* Header with batch actions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg">Editing {clips.length} Clips</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Make changes to captions and hooks, then save when ready
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {clipsWithChanges > 0 && (
-                <Badge variant="secondary" className="gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {clipsWithChanges} unsaved
-                </Badge>
-              )}
-              
-              {lastSaveTime && (
-                <Badge variant="outline" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Saved {lastSaveTime.toLocaleTimeString()}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="pt-0">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={saveAllClips}
-              disabled={clipsWithChanges === 0 || isBatchSaving}
-              className="gap-2"
-            >
-              {isBatchSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save All Changes {clipsWithChanges > 0 && `(${clipsWithChanges})`}
-            </Button>
-            
-            <Button
-              variant="outline"
-              onClick={() => resetClip(activeClipId)}
-              disabled={!activeState.hasChanges}
-              className="gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset Current
-            </Button>
-            
-            <Button
-              variant="outline"
-              onClick={() => window.open(`/projects/${projectId}`, '_blank')}
-              className="gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View Project
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Tabbed interface for clips */}
       <Tabs value={activeClipId} onValueChange={setActiveClipId} className="w-full">
         <TabsList className="w-full h-auto p-2 bg-muted/50">
@@ -351,57 +285,13 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
           <TabsContent key={clip.id} value={clip.id} className="mt-6">
             <ClipEditor
               videoUrl={getVideoUrl(clip)}
-              initialTranscript={Array.isArray(clip.transcript) ? clip.transcript : []}
+              initialTranscript={Array.isArray(clip.transcript) ? clip.transcript as any[] : []}
               initialHook={clip.hook || ''}
               className="w-full"
             />
           </TabsContent>
         ))}
       </Tabs>
-
-      {/* Quick actions footer */}
-      <Card className="border-dashed">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-medium">Quick Actions</h3>
-              <p className="text-sm text-muted-foreground">
-                After editing, you can export your clips with the new captions
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={() => saveClip(activeClipId)}
-                disabled={!activeState.hasChanges || activeState.isSaving}
-                size="sm"
-                className="gap-2"
-              >
-                {activeState.isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                Save Current
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => {
-                  // Future: Export functionality
-                  toast.info('Export functionality coming soon!');
-                }}
-              >
-                <Download className="h-4 w-4" />
-                Export All
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

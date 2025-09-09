@@ -7,6 +7,24 @@ export interface TranscriptWord {
   id?: string; // We'll generate IDs for existing words
 }
 
+export interface TextPosition {
+  x: number; // Percentage (0-100) from left
+  y: number; // Percentage (0-100) from top
+}
+
+export interface TextStyle {
+  fontSize: number; // Font size in pixels
+  position: TextPosition;
+}
+
+export interface DragState {
+  isDragging: boolean;
+  dragTarget: 'hook' | 'captions' | null;
+  dragOffset: { x: number; y: number };
+  isResizing: boolean;
+  resizeHandle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | null;
+}
+
 export interface EditorState {
   // Video state
   currentTime: number;
@@ -17,13 +35,33 @@ export interface EditorState {
   transcript: TranscriptWord[];
   hook: string;
   
+  // Text styling and positioning
+  hookStyle: TextStyle;
+  captionsStyle: TextStyle;
+  selectedTextElement: 'hook' | 'captions' | null;
+  dragState: DragState;
+  
   // Actions
   setCurrentTime: (time: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setDuration: (duration: number) => void;
   setTranscript: (transcript: TranscriptWord[]) => void;
   updateWord: (index: number, newText: string) => void;
+  insertWord: (index: number, word: string) => void;
+  deleteWord: (index: number) => void;
   setHook: (hook: string) => void;
+  
+  // Text positioning and styling actions
+  updateHookStyle: (style: Partial<TextStyle>) => void;
+  updateCaptionsStyle: (style: Partial<TextStyle>) => void;
+  setSelectedTextElement: (element: 'hook' | 'captions' | null) => void;
+  startDrag: (target: 'hook' | 'captions', offset: { x: number; y: number }) => void;
+  updateDrag: (position: TextPosition) => void;
+  endDrag: () => void;
+  startResize: (target: 'hook' | 'captions', handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => void;
+  updateResize: (fontSize: number) => void;
+  endResize: () => void;
+  resetTextStyles: () => void;
   
   // Computed
   getActiveWords: () => TranscriptWord[];
@@ -36,6 +74,24 @@ export const useClipEditorStore = create<EditorState>((set, get) => ({
   duration: 0,
   transcript: [],
   hook: '',
+  
+  // Default text styling and positioning
+  hookStyle: {
+    fontSize: 24,
+    position: { x: 50, y: 15 } // Center horizontal, 15% from top
+  },
+  captionsStyle: {
+    fontSize: 32,
+    position: { x: 50, y: 80 } // Center horizontal, 80% from top
+  },
+  selectedTextElement: null,
+  dragState: {
+    isDragging: false,
+    dragTarget: null,
+    dragOffset: { x: 0, y: 0 },
+    isResizing: false,
+    resizeHandle: null
+  },
 
   // Actions
   setCurrentTime: (time: number) => set({ currentTime: time }),
@@ -43,11 +99,22 @@ export const useClipEditorStore = create<EditorState>((set, get) => ({
   setDuration: (duration: number) => set({ duration }),
   
   setTranscript: (transcript: TranscriptWord[]) => {
-    // Add IDs to existing words if they don't have them
+    if (transcript.length === 0) {
+      set({ transcript: [] });
+      return;
+    }
+    
+    // Find the minimum start time to normalize timestamps to start at 0
+    const minStartTime = Math.min(...transcript.map(word => word.start));
+    
+    // Normalize timestamps and add IDs to existing words if they don't have them
     const transcriptWithIds = transcript.map((word, index) => ({
       ...word,
+      start: word.start - minStartTime,
+      end: word.end - minStartTime,
       id: word.id || `word_${index}_${Date.now()}`
     }));
+    
     set({ transcript: transcriptWithIds });
   },
   
@@ -59,14 +126,254 @@ export const useClipEditorStore = create<EditorState>((set, get) => ({
     set({ transcript: updatedTranscript });
   },
   
+  insertWord: (index: number, word: string) => {
+    const transcript = get().transcript;
+    
+    // Calculate timestamps for the new word
+    let start: number, end: number;
+    
+    if (transcript.length === 0) {
+      // First word in empty transcript
+      start = 0;
+      end = 1;
+    } else if (index === 0) {
+      // Insert at beginning
+      const nextWord = transcript[0];
+      end = nextWord.start;
+      start = Math.max(0, end - 0.5);
+    } else if (index >= transcript.length) {
+      // Insert at end
+      const prevWord = transcript[transcript.length - 1];
+      start = prevWord.end;
+      end = start + 0.5;
+    } else {
+      // Insert between words
+      const prevWord = transcript[index - 1];
+      const nextWord = transcript[index];
+      const gap = nextWord.start - prevWord.end;
+      
+      if (gap > 0.5) {
+        // Enough gap - center the new word
+        const duration = Math.min(0.5, gap * 0.4);
+        const center = prevWord.end + (gap / 2);
+        start = center - (duration / 2);
+        end = center + (duration / 2);
+      } else {
+        // Small gap - squeeze it in
+        start = prevWord.end;
+        end = nextWord.start;
+      }
+    }
+    
+    const newWord: TranscriptWord = {
+      word: word.trim(),
+      start,
+      end,
+      id: `inserted_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    };
+    
+    const updatedTranscript = [
+      ...transcript.slice(0, index),
+      newWord,
+      ...transcript.slice(index)
+    ];
+    
+    set({ transcript: updatedTranscript });
+  },
+  
+  deleteWord: (index: number) => {
+    const transcript = get().transcript;
+    if (index >= 0 && index < transcript.length) {
+      const updatedTranscript = transcript.filter((_, i) => i !== index);
+      set({ transcript: updatedTranscript });
+    }
+  },
+  
   setHook: (hook: string) => set({ hook }),
+  
+  // Text positioning and styling actions
+  updateHookStyle: (style: Partial<TextStyle>) => {
+    set(state => ({
+      hookStyle: { ...state.hookStyle, ...style }
+    }));
+  },
+  
+  updateCaptionsStyle: (style: Partial<TextStyle>) => {
+    set(state => ({
+      captionsStyle: { ...state.captionsStyle, ...style }
+    }));
+  },
+  
+  setSelectedTextElement: (element: 'hook' | 'captions' | null) => {
+    set({ selectedTextElement: element });
+  },
+  
+  startDrag: (target: 'hook' | 'captions', offset: { x: number; y: number }) => {
+    set({
+      selectedTextElement: target,
+      dragState: {
+        isDragging: true,
+        dragTarget: target,
+        dragOffset: offset,
+        isResizing: false,
+        resizeHandle: null
+      }
+    });
+  },
+  
+  updateDrag: (position: TextPosition) => {
+    const { dragState } = get();
+    if (!dragState.isDragging || !dragState.dragTarget) return;
+    
+    // Constrain position to bounds (with some padding)
+    const constrainedPosition = {
+      x: Math.max(5, Math.min(95, position.x)),
+      y: Math.max(5, Math.min(95, position.y))
+    };
+    
+    if (dragState.dragTarget === 'hook') {
+      set(state => ({
+        hookStyle: {
+          ...state.hookStyle,
+          position: constrainedPosition
+        }
+      }));
+    } else if (dragState.dragTarget === 'captions') {
+      set(state => ({
+        captionsStyle: {
+          ...state.captionsStyle,
+          position: constrainedPosition
+        }
+      }));
+    }
+  },
+  
+  endDrag: () => {
+    set(state => ({
+      dragState: {
+        ...state.dragState,
+        isDragging: false,
+        dragTarget: null,
+        dragOffset: { x: 0, y: 0 }
+      }
+    }));
+  },
+  
+  startResize: (target: 'hook' | 'captions', handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => {
+    set({
+      selectedTextElement: target,
+      dragState: {
+        isDragging: false,
+        dragTarget: target,
+        dragOffset: { x: 0, y: 0 },
+        isResizing: true,
+        resizeHandle: handle
+      }
+    });
+  },
+  
+  updateResize: (fontSize: number) => {
+    const { dragState } = get();
+    if (!dragState.isResizing || !dragState.dragTarget) return;
+    
+    // Constrain font size to reasonable bounds
+    const constrainedSize = Math.max(12, Math.min(72, fontSize));
+    
+    if (dragState.dragTarget === 'hook') {
+      set(state => ({
+        hookStyle: {
+          ...state.hookStyle,
+          fontSize: constrainedSize
+        }
+      }));
+    } else if (dragState.dragTarget === 'captions') {
+      set(state => ({
+        captionsStyle: {
+          ...state.captionsStyle,
+          fontSize: constrainedSize
+        }
+      }));
+    }
+  },
+  
+  endResize: () => {
+    set(state => ({
+      dragState: {
+        ...state.dragState,
+        isResizing: false,
+        dragTarget: null,
+        resizeHandle: null
+      }
+    }));
+  },
+  
+  resetTextStyles: () => {
+    set({
+      hookStyle: {
+        fontSize: 24,
+        position: { x: 50, y: 15 }
+      },
+      captionsStyle: {
+        fontSize: 32,
+        position: { x: 50, y: 80 }
+      },
+      selectedTextElement: null,
+      dragState: {
+        isDragging: false,
+        dragTarget: null,
+        dragOffset: { x: 0, y: 0 },
+        isResizing: false,
+        resizeHandle: null
+      }
+    });
+  },
   
   // Computed getters
   getActiveWords: () => {
     const { currentTime, transcript } = get();
-    return transcript.filter(word => 
-      currentTime >= word.start && currentTime <= word.end
-    );
+    
+    if (transcript.length === 0) return [];
+    
+    // Find the current word index
+    let currentWordIndex = -1;
+    for (let i = 0; i < transcript.length; i++) {
+      if (currentTime >= transcript[i].start && currentTime <= transcript[i].end) {
+        currentWordIndex = i;
+        break;
+      }
+    }
+    
+    // If no word is exactly active, find the closest upcoming word
+    if (currentWordIndex === -1) {
+      for (let i = 0; i < transcript.length; i++) {
+        if (currentTime < transcript[i].start) {
+          currentWordIndex = i;
+          break;
+        }
+      }
+    }
+    
+    // If still no word found, find the last word that has passed
+    if (currentWordIndex === -1) {
+      for (let i = transcript.length - 1; i >= 0; i--) {
+        if (currentTime >= transcript[i].start) {
+          currentWordIndex = i;
+          break;
+        }
+      }
+    }
+    
+    // If we found a current word, determine which group of 3 it belongs to
+    if (currentWordIndex >= 0) {
+      // Calculate which group of 3 this word belongs to
+      const groupIndex = Math.floor(currentWordIndex / 3);
+      const startIndex = groupIndex * 3;
+      const endIndex = Math.min(transcript.length - 1, startIndex + 2);
+      
+      return transcript.slice(startIndex, endIndex + 1);
+    }
+    
+    return [];
   }
 }));
 
