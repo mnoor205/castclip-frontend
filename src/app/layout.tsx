@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { PostHogProvider } from "./providers";
 import { Metadata } from "next";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     default: "CastClip | Generate Viral Clips For Your Podcast in Minutes",
     template: " %s | CastClip"
   },
-  description: "CastClip turns any full length podcast into short viral clips for platforms like TikTok",
+  description: "Create viral short-form clips from your long-form video content with AI.",
   keywords: [
     "podcast clipper free", "podcast clipper", "podcast video clip generator", "how to make podcast clips for tiktok", "podcast video editing software", "podcast maker", "ai podcast editing", "ai clip generator", "podcast ai"
   ],
@@ -72,11 +73,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-gradient-to-br from-pink-50 via-transparent to-orange-50`}
       >
         <PostHogProvider>
           {children}
+          <Toaster />
         </PostHogProvider>
         
       </body>

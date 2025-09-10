@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClipEditor } from './clip-editor';
 import { Button } from '@/components/ui/button';
@@ -21,41 +21,71 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Clip } from '@prisma/client';
 
+export interface MultiClipEditorRef {
+  saveAll: () => Promise<void>;
+}
+
 interface MultiClipEditorProps {
   projectId: string;
   clips: Clip[];
   projectTitle: string;
+  captionStyle: number;
+  onSaveAll?: (changes: ClipEditState[], textPositioning: any) => Promise<void>;
 }
 
 interface ClipEditState {
   clipId: string;
   transcript: any[];
   hook: string;
+  hookStyle?: any;
+  captionsStyle?: any;
   hasChanges: boolean;
   isSaving: boolean;
 }
 
-export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEditorProps) {
+export const MultiClipEditor = forwardRef<MultiClipEditorRef, MultiClipEditorProps>(function MultiClipEditor({ projectId, clips, projectTitle, captionStyle, onSaveAll }, ref) {
   const router = useRouter();
   const [activeClipId, setActiveClipId] = useState<string>(clips[0]?.id || '');
   const [clipStates, setClipStates] = useState<Record<string, ClipEditState>>({});
   const [isBatchSaving, setIsBatchSaving] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
 
-  const { transcript, hook } = useClipEditorStore();
+  const { transcript, hook, hookStyle, captionsStyle, setCaptionStylePreference } = useClipEditorStore();
+
+  // Set the caption style preference once
+  useEffect(() => {
+    if (setCaptionStylePreference) {
+      setCaptionStylePreference(captionStyle);
+    }
+  }, [captionStyle, setCaptionStylePreference]);
 
   // Initialize clip states
   useEffect(() => {
     const initialStates: Record<string, ClipEditState> = {};
+    
+    // Default text styles - these are the "original" values to compare against
+    const defaultHookStyle = {
+      fontSize: 24,
+      position: { x: 50, y: 15 }
+    };
+    const defaultCaptionsStyle = {
+      fontSize: 32,
+      position: { x: 50, y: 80 }
+    };
+    
     clips.forEach(clip => {
       initialStates[clip.id] = {
         clipId: clip.id,
         transcript: Array.isArray(clip.transcript) ? clip.transcript as any[] : [],
         hook: clip.hook || '',
+        hookStyle: defaultHookStyle, // Use default, not current global state
+        captionsStyle: defaultCaptionsStyle, // Use default, not current global state
         hasChanges: false,
         isSaving: false
       };
     });
+    
+    console.log('Initialized clip states:', initialStates);
     setClipStates(initialStates);
   }, [clips]);
 
@@ -65,21 +95,37 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
       const currentState = clipStates[activeClipId];
       const hasTranscriptChanged = JSON.stringify(transcript) !== JSON.stringify(currentState.transcript);
       const hasHookChanged = hook !== currentState.hook;
-      const hasChanges = hasTranscriptChanged || hasHookChanged;
+      const hasHookStyleChanged = JSON.stringify(hookStyle) !== JSON.stringify(currentState.hookStyle);
+      const hasCaptionsStyleChanged = JSON.stringify(captionsStyle) !== JSON.stringify(currentState.captionsStyle);
+      const hasChanges = hasTranscriptChanged || hasHookChanged || hasHookStyleChanged || hasCaptionsStyleChanged;
+
+      // Debug logging
+      console.log('=== CHANGE DETECTION DEBUG ===');
+      console.log('Active clip:', activeClipId);
+      console.log('Transcript changed:', hasTranscriptChanged);
+      console.log('Hook changed:', hasHookChanged);
+      console.log('Hook style changed:', hasHookStyleChanged);
+      console.log('Captions style changed:', hasCaptionsStyleChanged);
+      console.log('Overall hasChanges:', hasChanges);
+      console.log('Current state hasChanges:', currentState.hasChanges);
+      console.log('==============================');
 
       if (hasChanges || currentState.hasChanges !== hasChanges) {
+        console.log('Updating clip state for:', activeClipId, 'hasChanges:', hasChanges);
         setClipStates(prev => ({
           ...prev,
           [activeClipId]: {
             ...prev[activeClipId],
             transcript: [...transcript],
             hook,
+            hookStyle: { ...hookStyle },
+            captionsStyle: { ...captionsStyle },
             hasChanges
           }
         }));
       }
     }
-  }, [transcript, hook, activeClipId, clipStates]);
+  }, [transcript, hook, hookStyle, captionsStyle, activeClipId]);
 
   // Get active clip data
   const activeClip = clips.find(clip => clip.id === activeClipId);
@@ -139,7 +185,14 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
   const saveAllClips = useCallback(async () => {
     const clipsToSave = Object.values(clipStates).filter(state => state.hasChanges);
     
+    console.log('=== SAVE ATTEMPT ===');
+    console.log('Total clips:', Object.values(clipStates).length);
+    console.log('Clips with changes:', clipsToSave.length);
+    console.log('All clip states:', clipStates);
+    console.log('===================');
+    
     if (clipsToSave.length === 0) {
+      console.log('No changes detected - showing toast');
       toast.info('No changes to save');
       return;
     }
@@ -147,21 +200,28 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
     setIsBatchSaving(true);
 
     try {
-      const savePromises = clipsToSave.map(state =>
-        fetch(`/api/clips/${state.clipId}/edit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      if (onSaveAll) {
+        // Use custom save callback (for logging changes)
+        const textPositioning = {
+          hookStyle,
+          captionsStyle
+        };
+        
+        console.log('=== SAVE ALL CHANGES ===');
+        console.log('Clips to save:', clipsToSave.length);
+        clipsToSave.forEach((state, index) => {
+          console.log(`Clip ${index + 1} (${state.clipId}):`, {
             transcript: state.transcript,
-            hook: state.hook
-          })
-        })
-      );
-
-      const results = await Promise.allSettled(savePromises);
-      const failures = results.filter(result => result.status === 'rejected').length;
-
-      if (failures === 0) {
+            hook: state.hook,
+            hookStyle: state.hookStyle,
+            captionsStyle: state.captionsStyle
+          });
+        });
+        console.log('Global text positioning:', textPositioning);
+        console.log('========================');
+        
+        await onSaveAll(clipsToSave, textPositioning);
+        
         // Mark all clips as saved
         setClipStates(prev => {
           const updated = { ...prev };
@@ -178,7 +238,42 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
         setLastSaveTime(new Date());
         toast.success(`Saved ${clipsToSave.length} clip${clipsToSave.length !== 1 ? 's' : ''} successfully`);
       } else {
-        toast.error(`Failed to save ${failures} clip${failures !== 1 ? 's' : ''}`);
+        // Use existing API save logic
+        const savePromises = clipsToSave.map(state =>
+          fetch(`/api/clips/${state.clipId}/edit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              transcript: state.transcript,
+              hook: state.hook,
+              hookStyle: state.hookStyle,
+              captionsStyle: state.captionsStyle
+            })
+          })
+        );
+
+        const results = await Promise.allSettled(savePromises);
+        const failures = results.filter(result => result.status === 'rejected').length;
+
+        if (failures === 0) {
+          // Mark all clips as saved
+          setClipStates(prev => {
+            const updated = { ...prev };
+            clipsToSave.forEach(state => {
+              updated[state.clipId] = {
+                ...updated[state.clipId],
+                hasChanges: false,
+                isSaving: false
+              };
+            });
+            return updated;
+          });
+
+          setLastSaveTime(new Date());
+          toast.success(`Saved ${clipsToSave.length} clip${clipsToSave.length !== 1 ? 's' : ''} successfully`);
+        } else {
+          toast.error(`Failed to save ${failures} clip${failures !== 1 ? 's' : ''}`);
+        }
       }
     } catch (error) {
       console.error('Error batch saving:', error);
@@ -186,12 +281,22 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
     } finally {
       setIsBatchSaving(false);
     }
-  }, [clipStates]);
+  }, [clipStates, onSaveAll, hookStyle, captionsStyle]);
 
   // Reset clip to original state
   const resetClip = useCallback((clipId: string) => {
     const clip = clips.find(c => c.id === clipId);
     if (!clip) return;
+
+    // Use the same default values as initialization
+    const defaultHookStyle = {
+      fontSize: 24,
+      position: { x: 50, y: 15 }
+    };
+    const defaultCaptionsStyle = {
+      fontSize: 32,
+      position: { x: 50, y: 80 }
+    };
 
     setClipStates(prev => ({
       ...prev,
@@ -199,6 +304,8 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
         ...prev[clipId],
         transcript: Array.isArray(clip.transcript) ? clip.transcript as any[] : [],
         hook: clip.hook || '',
+        hookStyle: defaultHookStyle,
+        captionsStyle: defaultCaptionsStyle,
         hasChanges: false
       }
     }));
@@ -208,6 +315,11 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
 
   // Count clips with changes
   const clipsWithChanges = Object.values(clipStates).filter(state => state.hasChanges).length;
+
+  // Expose save function through ref
+  useImperativeHandle(ref, () => ({
+    saveAll: saveAllClips
+  }));
 
   // Warn user before leaving with unsaved changes
   useEffect(() => {
@@ -294,4 +406,4 @@ export function MultiClipEditor({ projectId, clips, projectTitle }: MultiClipEdi
       </Tabs>
     </div>
   );
-}
+});

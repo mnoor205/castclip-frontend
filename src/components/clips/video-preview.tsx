@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import { useClipEditorStore } from "@/stores/clip-editor-store";
+import { useClipEditorStore, TranscriptWord } from "@/stores/clip-editor-store";
 
 interface VideoPreviewProps {
   videoUrl: string;
@@ -19,10 +19,12 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
     duration,
     transcript,
     hook,
+    isEditMode,
     hookStyle,
     captionsStyle,
     selectedTextElement,
     dragState,
+    captionStylePreference,
     setCurrentTime,
     setIsPlaying,
     setDuration,
@@ -857,71 +859,94 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
     // Draw active words (captions)
     const activeWords = getActiveWords();
     if (activeWords.length > 0) {
-      ctx.font = `bold ${captionsStyle.fontSize}px Impact, Arial, sans-serif`;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.strokeStyle =
-        selectedTextElement === "captions" ? "#00FF00" : "#000000";
-      ctx.lineWidth = 4;
-      ctx.textAlign = "center";
-
-      // Combine active words into phrases
-      const text = activeWords.map((w) => w.word).join(" ");
-
-      // Handle text wrapping for long phrases
-      const maxWidth = canvas.width * 0.9; // 90% of canvas width
-      const words = text.split(" ");
-      const lines: string[] = [];
-      let currentLine = "";
-
-      for (const word of words) {
-        const testLine = currentLine + (currentLine ? " " : "") + word;
-        const metrics = ctx.measureText(testLine);
-
-        if (metrics.width <= maxWidth || currentLine === "") {
-          currentLine = testLine;
-        } else {
-          lines.push(currentLine);
-          currentLine = word;
-        }
-      }
-
-      if (currentLine) {
-        lines.push(currentLine);
-      }
-
-      // Calculate position from percentage
       const captionsX = (captionsStyle.position.x / 100) * canvas.width;
       const captionsY = (captionsStyle.position.y / 100) * canvas.height;
 
-      // Position text based on store position
+      // --- 1. Universal Text Wrapping & Layout Calculation ---
+      const text = activeWords.map((w: TranscriptWord) => w.word).join(" ");
+      const maxWidth = canvas.width * 0.9;
+      const words = text.split(' ');
+      let line = '';
+      const lines = [];
+
+      // This font logic is temporary for width calculation; it will be set again for drawing.
+      ctx.font = `bold ${captionsStyle.fontSize}px ${captionStylePreference === 1 ? 'Anton' : 'Impact'}, Arial, sans-serif`;
+
+      for(let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          lines.push(line.trim());
+          line = words[n] + ' ';
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line.trim());
+
       const lineHeight = captionsStyle.fontSize * 1.2;
-      const totalTextHeight = lines.length * lineHeight;
-      const startY = captionsY - totalTextHeight / 2;
+      const totalHeight = lines.length * lineHeight;
+      const startY = captionsY - totalHeight / 2;
+      const maxLineWidth = Math.max(...lines.map(l => ctx.measureText(l).width));
 
-      // Draw each line
-      lines.forEach((line, index) => {
-        const y = startY + index * lineHeight;
-        ctx.strokeText(line, captionsX, y);
-        ctx.fillText(line, captionsX, y);
+      // --- 2. Style-Specific Rendering ---
+      lines.forEach((line: string, i: number) => {
+        const yPos = startY + (i * lineHeight) + (captionsStyle.fontSize / 2); // Adjust for text baseline
+
+        // Style 1: Red highlight with Anton font
+        if (captionStylePreference === 1) {
+          ctx.font = `bold ${captionsStyle.fontSize}px Anton, sans-serif`;
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "#000000";
+
+          const wordsInLine = line.split(' ');
+          const totalLineWidth = ctx.measureText(line).width;
+          let currentX = captionsX - totalLineWidth / 2;
+
+          wordsInLine.forEach(wordText => {
+            const word = activeWords.find(w => w.word === wordText && !(w as any).drawn);
+            if (!word) return; // Should not happen if logic is correct
+
+            const isCurrentWord = currentTime >= word.start && currentTime <= word.end;
+            ctx.fillStyle = isCurrentWord ? "#FF0000" : "#FFFFFF";
+
+            const wordWidth = ctx.measureText(wordText).width;
+            const wordCenterX = currentX + wordWidth / 2;
+            
+            ctx.strokeText(wordText, wordCenterX, yPos);
+            ctx.fillText(wordText, wordCenterX, yPos);
+            
+            currentX += wordWidth + ctx.measureText(' ').width;
+            (word as any).drawn = true; // Mark as drawn to handle duplicate words
+          });
+
+        } else {
+          // Default style
+          ctx.font = `bold ${captionsStyle.fontSize}px Impact, Arial, sans-serif`;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.strokeStyle = selectedTextElement === "captions" ? "#00FF00" : "#000000";
+          ctx.lineWidth = 4;
+          ctx.textAlign = "center";
+          
+          ctx.strokeText(line, captionsX, yPos);
+          ctx.fillText(line, captionsX, yPos);
+        }
       });
+      
+      // Reset drawn flag for next frame
+      activeWords.forEach(w => (w as any).drawn = false);
 
-      // Draw selection indicator for captions
+      // --- 3. Universal Selection & Resizing UI ---
       if (selectedTextElement === "captions") {
         ctx.strokeStyle = "#00FF00";
         ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
+        ctx.setLineDash([10, 5]); // Dashed line for selection
 
         const padding = 12;
-        const maxLineWidth = Math.max(
-          ...lines
-            .filter((l) => l.trim())
-            .map((line) => ctx.measureText(line).width)
-        );
-
-        // Calculate proper text bounds (accounting for text baseline)
-        const textBaseline = captionsStyle.fontSize * 0.8; // Approximate baseline offset
+        const textBaseline = captionsStyle.fontSize * 0.8;
         const rectTop = startY - textBaseline - padding;
-        const rectHeight = totalTextHeight + padding * 2;
+        const rectHeight = totalHeight + padding * 2;
 
         // Single rectangle around entire text block
         ctx.strokeRect(
@@ -930,44 +955,40 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
           maxLineWidth + padding * 2,
           rectHeight
         );
-
+        
         ctx.setLineDash([]); // Reset line dash
-
+        
         // Draw resize handles at all four corners
         const handleSize = 12;
         const rectLeft = captionsX - maxLineWidth / 2 - padding;
         const rectRight = captionsX + maxLineWidth / 2 + padding;
         const rectBottom = rectTop + rectHeight;
-
+        
         const handles = [
-          { x: rectLeft, y: rectTop, cursor: "nw-resize" }, // top-left
-          { x: rectRight, y: rectTop, cursor: "ne-resize" }, // top-right
-          { x: rectLeft, y: rectBottom, cursor: "sw-resize" }, // bottom-left
-          { x: rectRight, y: rectBottom, cursor: "se-resize" }, // bottom-right
+          { x: rectLeft, y: rectTop, cursor: 'nw-resize' },
+          { x: rectRight, y: rectTop, cursor: 'ne-resize' },
+          { x: rectLeft, y: rectBottom, cursor: 'sw-resize' },
+          { x: rectRight, y: rectBottom, cursor: 'se-resize' },
         ];
-
+        
         handles.forEach((handle) => {
-          // Handle background (white circle)
-          ctx.fillStyle = "#FFFFFF";
+          ctx.fillStyle = '#FFFFFF';
           ctx.beginPath();
           ctx.arc(handle.x, handle.y, handleSize / 2, 0, Math.PI * 2);
           ctx.fill();
-
-          // Handle border (green circle)
-          ctx.strokeStyle = "#00FF00";
+          
+          ctx.strokeStyle = '#00FF00';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(handle.x, handle.y, handleSize / 2, 0, Math.PI * 2);
           ctx.stroke();
-
-          // Resize arrows icon
-          ctx.strokeStyle = "#00FF00";
+          
+          ctx.strokeStyle = '#00FF00';
           ctx.lineWidth = 1.5;
           const arrowSize = 2.5;
           ctx.beginPath();
-          // Diagonal arrows based on corner
-          if (handle.cursor === "nw-resize" || handle.cursor === "se-resize") {
-            // ↖↘ arrows
+
+          if (handle.cursor === 'nw-resize' || handle.cursor === 'se-resize') {
             ctx.moveTo(handle.x - arrowSize, handle.y - arrowSize);
             ctx.lineTo(handle.x + arrowSize, handle.y + arrowSize);
             ctx.moveTo(handle.x - arrowSize + 1, handle.y - arrowSize);
@@ -975,7 +996,6 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
             ctx.moveTo(handle.x + arrowSize - 1, handle.y + arrowSize);
             ctx.lineTo(handle.x + arrowSize, handle.y + arrowSize - 1);
           } else {
-            // ↗↙ arrows
             ctx.moveTo(handle.x - arrowSize, handle.y + arrowSize);
             ctx.lineTo(handle.x + arrowSize, handle.y - arrowSize);
             ctx.moveTo(handle.x - arrowSize, handle.y + arrowSize - 1);
@@ -987,7 +1007,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
         });
       }
     }
-  }, [hook, hookStyle, captionsStyle, selectedTextElement, getActiveWords]);
+  }, [hook, hookStyle, captionsStyle, selectedTextElement, getActiveWords, currentTime, captionStylePreference]);
 
   // Animation loop for smooth rendering
   const animate = useCallback(() => {
@@ -1033,31 +1053,29 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
         onPause={handlePause}
       />
 
-      {/* Canvas overlay for subtitles - only when text exists */}
-      {(hook.trim() || getActiveWords().length > 0) && (
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full"
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            pointerEvents: selectedTextElement ? "auto" : "none",
-            cursor: dragState.isDragging
-              ? "grabbing"
-              : dragState.isResizing
-              ? "nw-resize"
-              : "default",
-          }}
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseUp={handleCanvasMouseUp}
-          onMouseLeave={handleCanvasMouseUp}
-          onTouchStart={handleCanvasTouchStart}
-          onTouchMove={handleCanvasTouchMove}
-          onTouchEnd={handleCanvasTouchEnd}
-        />
-      )}
+      {/* Canvas overlay for subtitles */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          pointerEvents: isEditMode ? "auto" : "none",
+          cursor: dragState.isDragging
+            ? "grabbing"
+            : dragState.isResizing
+            ? "nw-resize"
+            : "default",
+        }}
+        onMouseDown={isEditMode ? handleCanvasMouseDown : undefined}
+        onMouseMove={isEditMode ? handleCanvasMouseMove : undefined}
+        onMouseUp={isEditMode ? handleCanvasMouseUp : undefined}
+        onMouseLeave={isEditMode ? handleCanvasMouseUp : undefined}
+        onTouchStart={isEditMode ? handleCanvasTouchStart : undefined}
+        onTouchMove={isEditMode ? handleCanvasTouchMove : undefined}
+        onTouchEnd={isEditMode ? handleCanvasTouchEnd : undefined}
+      />
     </div>
   );
 }

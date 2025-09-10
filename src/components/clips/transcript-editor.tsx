@@ -19,6 +19,7 @@ export function TranscriptEditor({ className = "" }: TranscriptEditorProps) {
     hook,
     currentTime,
     isPlaying,
+    isEditMode,
     hookStyle,
     captionsStyle,
     selectedTextElement,
@@ -27,6 +28,7 @@ export function TranscriptEditor({ className = "" }: TranscriptEditorProps) {
     insertWord,
     deleteWord,
     setHook,
+    setEditMode,
     resetTextStyles,
     setSelectedTextElement,
     getActiveWords

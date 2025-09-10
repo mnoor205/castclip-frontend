@@ -35,45 +35,71 @@ export interface EditorState {
   transcript: TranscriptWord[];
   hook: string;
   
+  // Edit mode
+  isEditMode: boolean;
+  
   // Text styling and positioning
   hookStyle: TextStyle;
   captionsStyle: TextStyle;
   selectedTextElement: 'hook' | 'captions' | null;
   dragState: DragState;
-  
-  // Actions
+
+  // Caption style preference from project settings
+  captionStylePreference: number | null;
+}
+
+export interface EditorActions {
   setCurrentTime: (time: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setDuration: (duration: number) => void;
+  
   setTranscript: (transcript: TranscriptWord[]) => void;
+  
   updateWord: (index: number, newText: string) => void;
+  
   insertWord: (index: number, word: string) => void;
+  
   deleteWord: (index: number) => void;
+  
   setHook: (hook: string) => void;
+  setEditMode: (enabled: boolean) => void;
+  setCaptionStylePreference: (styleId: number) => void;
   
   // Text positioning and styling actions
   updateHookStyle: (style: Partial<TextStyle>) => void;
+  
   updateCaptionsStyle: (style: Partial<TextStyle>) => void;
+  
   setSelectedTextElement: (element: 'hook' | 'captions' | null) => void;
+  
   startDrag: (target: 'hook' | 'captions', offset: { x: number; y: number }) => void;
+  
   updateDrag: (position: TextPosition) => void;
+  
   endDrag: () => void;
+  
   startResize: (target: 'hook' | 'captions', handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => void;
+  
   updateResize: (fontSize: number) => void;
+  
   endResize: () => void;
+  
   resetTextStyles: () => void;
   
-  // Computed
+  // Computed getters
   getActiveWords: () => TranscriptWord[];
 }
 
-export const useClipEditorStore = create<EditorState>((set, get) => ({
+export type EditorStore = EditorState & EditorActions;
+
+export const useClipEditorStore = create<EditorStore>((set, get) => ({
   // Initial state
   currentTime: 0,
   isPlaying: false,
   duration: 0,
   transcript: [],
   hook: '',
+  isEditMode: false,
   
   // Default text styling and positioning
   hookStyle: {
@@ -92,6 +118,7 @@ export const useClipEditorStore = create<EditorState>((set, get) => ({
     isResizing: false,
     resizeHandle: null
   },
+  captionStylePreference: null,
 
   // Actions
   setCurrentTime: (time: number) => set({ currentTime: time }),
@@ -190,6 +217,8 @@ export const useClipEditorStore = create<EditorState>((set, get) => ({
   },
   
   setHook: (hook: string) => set({ hook }),
+  setEditMode: (enabled: boolean) => set({ isEditMode: enabled }),
+  setCaptionStylePreference: (styleId: number) => set({ captionStylePreference: styleId }),
   
   // Text positioning and styling actions
   updateHookStyle: (style: Partial<TextStyle>) => {

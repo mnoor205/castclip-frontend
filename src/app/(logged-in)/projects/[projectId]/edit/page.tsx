@@ -1,7 +1,7 @@
 import { prismaDB } from "@/lib/prisma";
 import { getUserData } from "@/actions/user";
 import { redirect } from "next/navigation";
-import { MultiClipEditor } from "@/components/clips/multi-clip-editor";
+import { EditPageClient } from "@/components/clips/edit-page-client";
 import BackButton from "@/components/navigation/back-button";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -72,27 +72,12 @@ async function EditPageContent({ projectId }: { projectId: string }) {
   const title = project.displayName ?? "Untitled Project";
 
   return (
-    <div className="w-full flex flex-col gap-6 px-4 sm:px-6 py-6 sm:py-10">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <BackButton fallbackHref={`/projects/${project.id}`} />
-        <div className="flex-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">
-            Edit: {title}
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            {editableClips.length} clip{editableClips.length !== 1 ? 's' : ''} available for editing
-          </p>
-        </div>
-      </div>
-
-      {/* Multi-Clip Editor */}
-      <MultiClipEditor 
-        projectId={project.id}
-        clips={editableClips}
-        projectTitle={title}
-      />
-    </div>
+    <EditPageClient
+      projectId={project.id}
+      clips={editableClips}
+      projectTitle={title}
+      captionStyle={project.captionStyle}
+    />
   );
 }
 
