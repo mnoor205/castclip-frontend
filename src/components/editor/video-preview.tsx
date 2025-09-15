@@ -1,23 +1,37 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { useClipEditorStore, TranscriptWord } from "@/stores/clip-editor-store";
 
 interface VideoPreviewProps {
   videoUrl: string;
   className?: string;
+  // Props for display-only mode (project page)
+  displayOnly?: boolean;
+  clip?: {
+    transcript?: any;
+    hook?: string | null;
+    hookStyle?: { fontSize: number; position: { x: number; y: number } };
+    captionsStyle?: { fontSize: number; position: { x: number; y: number } };
+    captionStylePreference?: number;
+  };
 }
 
-export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
+export function VideoPreview({ videoUrl, className = "", displayOnly = false, clip }: VideoPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(null);
 
+  // Local state for display-only mode
+  const [localCurrentTime, setLocalCurrentTime] = useState(0);
+  const [localIsPlaying, setLocalIsPlaying] = useState(false);
+  const [localDuration, setLocalDuration] = useState(0);
+
+  // Use store in editor mode, local state in display mode
+  const storeData = useClipEditorStore();
+  
   const {
     currentTime,
-    isPlaying,
-    duration,
-    transcript,
     hook,
     isEditMode,
     hookStyle,
@@ -36,7 +50,76 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
     updateResize,
     endResize,
     getActiveWords,
-  } = useClipEditorStore();
+  } = displayOnly ? {
+    // Display-only mode: use local state and clip data
+    currentTime: localCurrentTime,
+    hook: clip?.hook || '',
+    isEditMode: false,
+    hookStyle: clip?.hookStyle || { fontSize: 24, position: { x: 50, y: 15 } },
+    captionsStyle: clip?.captionsStyle || { fontSize: 32, position: { x: 50, y: 80 } },
+    selectedTextElement: null,
+    dragState: { isDragging: false, isResizing: false, dragTarget: null, dragOffset: { x: 0, y: 0 }, resizeHandle: null },
+    captionStylePreference: clip?.captionStylePreference ?? 0, // Default style for display mode
+    setCurrentTime: setLocalCurrentTime,
+    setIsPlaying: setLocalIsPlaying,
+    setDuration: setLocalDuration,
+    setSelectedTextElement: () => {},
+    startDrag: () => {},
+    updateDrag: () => {},
+    endDrag: () => {},
+    startResize: () => {},
+    updateResize: () => {},
+    endResize: () => {},
+    getActiveWords: () => {
+      // Enhanced implementation matching the store's logic for display mode
+      if (!clip?.transcript || !Array.isArray(clip.transcript)) return [];
+      
+      const transcript = clip.transcript;
+      if (transcript.length === 0) return [];
+      
+      let currentWordIndex = -1;
+      
+      // First, try to find a word that is currently active
+      for (let i = 0; i < transcript.length; i++) {
+        if (localCurrentTime >= transcript[i].start && localCurrentTime <= transcript[i].end) {
+          currentWordIndex = i;
+          break;
+        }
+      }
+      
+      // If no word is exactly active, find the closest upcoming word
+      if (currentWordIndex === -1) {
+        for (let i = 0; i < transcript.length; i++) {
+          if (localCurrentTime < transcript[i].start) {
+            currentWordIndex = i;
+            break;
+          }
+        }
+      }
+      
+      // If still no word found, find the last word that has passed
+      if (currentWordIndex === -1) {
+        for (let i = transcript.length - 1; i >= 0; i--) {
+          if (localCurrentTime >= transcript[i].start) {
+            currentWordIndex = i;
+            break;
+          }
+        }
+      }
+      
+      // If we found a current word, determine which group of 3 it belongs to
+      if (currentWordIndex >= 0) {
+        // Calculate which group of 3 this word belongs to
+        const groupIndex = Math.floor(currentWordIndex / 3);
+        const startIndex = groupIndex * 3;
+        const endIndex = Math.min(transcript.length - 1, startIndex + 2);
+        
+        return transcript.slice(startIndex, endIndex + 1);
+      }
+      
+      return [];
+    },
+  } : storeData;
 
   // Video event handlers
   const handleTimeUpdate = useCallback(() => {
@@ -70,111 +153,150 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
     []
   );
 
-  // Get text bounds for hit testing (handles multi-line text)
-  const getTextBounds = useCallback(
-    (
-      text: string,
-      position: { x: number; y: number },
-      fontSize: number,
-      canvas: HTMLCanvasElement,
-      isHook: boolean = false
-    ) => {
+  // Centralized text layout calculation for both rendering and hit detection.
+  // This ensures that the visual representation and the clickable areas are always in sync.
+  const calculateTextLayout = useCallback(
+    (textElement: "hook" | "captions", canvas: HTMLCanvasElement) => {
+      const style = textElement === "hook" ? hookStyle : captionsStyle;
+      const text = textElement === "hook" ? hook : getActiveWords();
+
+      if (
+        (typeof text === "string" && !text.trim()) ||
+        (Array.isArray(text) && text.length === 0)
+      ) {
+        return null;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const baseCanvasHeight = 600;
+      const scaleFactor = Math.max(
+        0.4,
+        Math.min(2.5, rect.height / baseCanvasHeight)
+      );
+      const responsiveFontSize = Math.round(style.fontSize * scaleFactor);
+
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
 
-      ctx.font = `bold ${fontSize}px Impact, Arial, sans-serif`;
+      const isHook = textElement === "hook";
+      const font = `bold ${responsiveFontSize}px ${
+        !isHook && captionStylePreference === 1 ? "Anton" : "Impact"
+      }, Arial, sans-serif`;
+      ctx.font = font;
 
-      // Process text into lines (same wrapping logic as drawing)
-      let lines: string[];
-      if (isHook) {
-        const maxWidth = canvas.width * 0.9;
+      const maxWidth = rect.width * 0.9;
+      const lines: (string | TranscriptWord[])[] = [];
+
+      if (isHook && typeof text === "string") {
         const hookLines = text.split("\n");
-        const wrappedLines: string[] = [];
-
         hookLines.forEach((line) => {
           if (line.trim() === "") {
-            wrappedLines.push("");
+            lines.push("");
             return;
           }
-
           const words = line.split(" ");
           let currentLine = "";
-
           for (const word of words) {
             const testLine = currentLine + (currentLine ? " " : "") + word;
-            const metrics = ctx.measureText(testLine);
-
-            if (metrics.width <= maxWidth || currentLine === "") {
+            if (
+              ctx.measureText(testLine).width <= maxWidth ||
+              currentLine === ""
+            ) {
               currentLine = testLine;
             } else {
-              wrappedLines.push(currentLine);
+              lines.push(currentLine);
               currentLine = word;
             }
           }
-
           if (currentLine) {
-            wrappedLines.push(currentLine);
+            lines.push(currentLine);
           }
         });
-        lines = wrappedLines;
-      } else {
-        const maxWidth = canvas.width * 0.9;
-        const words = text.split(" ");
-        const wrappedLines: string[] = [];
-        let currentLine = "";
-
-        for (const word of words) {
-          const testLine = currentLine + (currentLine ? " " : "") + word;
-          const metrics = ctx.measureText(testLine);
-
-          if (metrics.width <= maxWidth || currentLine === "") {
-            currentLine = testLine;
+      } else if (!isHook && Array.isArray(text) && text.length > 0) {
+        let currentLine: TranscriptWord[] = [];
+        text.forEach((word) => {
+          const testLine = [...currentLine, word].map((w) => w.word).join(" ");
+          const measureText =
+            captionStylePreference === 3 ? testLine.toUpperCase() : testLine;
+          if (
+            ctx.measureText(measureText).width > maxWidth &&
+            currentLine.length > 0
+          ) {
+            lines.push(currentLine);
+            currentLine = [word];
           } else {
-            wrappedLines.push(currentLine);
-            currentLine = word;
+            currentLine.push(word);
           }
+        });
+        if (currentLine.length > 0) {
+          lines.push(currentLine);
         }
-
-        if (currentLine) {
-          wrappedLines.push(currentLine);
-        }
-        lines = wrappedLines;
       }
 
       if (lines.length === 0) return null;
 
-      // Calculate overall bounds covering all lines (accounting for text baseline)
-      const lineHeight = fontSize * 1.2;
-      const totalHeight = lines.length * lineHeight;
+      const getLineText = (line: string | TranscriptWord[]) => {
+        if (typeof line === "string") return line;
+        return line.map((w) => w.word).join(" ");
+      };
+
       const maxLineWidth = Math.max(
         ...lines
+          .map(getLineText)
           .filter((l) => l.trim())
-          .map((line) => ctx.measureText(line).width)
+          .map((line) =>
+            ctx.measureText(
+              captionStylePreference === 3 && !isHook
+                ? line.toUpperCase()
+                : line
+            ).width
+          )
       );
-      const textBaseline = fontSize * 0.8; // Approximate baseline offset
-      const padding = 12; // Same padding as visual rectangle
 
-      // Calculate actual visual bounds (same as rectangle)
-      const textX = (position.x / 100) * canvas.width;
-      const textY = (position.y / 100) * canvas.height;
-      const startY = textY - totalHeight / 2;
-      const rectTop = startY - textBaseline - padding;
-      const rectHeight = totalHeight + padding * 2;
-
-      // Convert back to percentages
-      const left = ((textX - maxLineWidth / 2 - padding) / canvas.width) * 100;
-      const right = ((textX + maxLineWidth / 2 + padding) / canvas.width) * 100;
-      const top = (rectTop / canvas.height) * 100;
-      const bottom = ((rectTop + rectHeight) / canvas.height) * 100;
+      const lineHeight = responsiveFontSize * 1.2;
+      const totalHeight = lines.length * lineHeight;
+      const textBaseline = responsiveFontSize * 0.8;
 
       return {
-        left,
-        right,
-        top,
-        bottom,
+        lines,
+        responsiveFontSize,
+        lineHeight,
+        totalHeight,
+        maxLineWidth,
+        textBaseline,
+        font,
       };
     },
-    []
+    [hook, getActiveWords, hookStyle, captionsStyle, captionStylePreference]
+  );
+
+  // Get text bounds for hit testing (handles multi-line text)
+  const getTextBounds = useCallback(
+    (textElement: "hook" | "captions", canvas: HTMLCanvasElement) => {
+      const layout = calculateTextLayout(textElement, canvas);
+      if (!layout) return null;
+
+      const style = textElement === "hook" ? hookStyle : captionsStyle;
+      const { maxLineWidth, totalHeight, textBaseline } = layout;
+      const rect = canvas.getBoundingClientRect();
+      const padding = 12;
+
+      const textX = (style.position.x / 100) * rect.width;
+      const textY = (style.position.y / 100) * rect.height;
+
+      const startY = textY - totalHeight / 2;
+      const rectTop = startY - textBaseline - padding;
+
+      const left = ((textX - maxLineWidth / 2 - padding) / rect.width) * 100;
+      const right =
+        ((textX + maxLineWidth / 2 + padding) / rect.width) * 100;
+      const top = (rectTop / rect.height) * 100;
+      const bottom =
+        ((rectTop + totalHeight + padding * 2) / rect.height) * 100;
+
+      return { left, right, top, bottom };
+    },
+    [calculateTextLayout, hookStyle, captionsStyle]
   );
 
   // Check if coordinates are within resize handle and return which handle
@@ -184,91 +306,20 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       textElement: "hook" | "captions",
       canvas: HTMLCanvasElement
     ): "top-left" | "top-right" | "bottom-left" | "bottom-right" | null => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
+      const layout = calculateTextLayout(textElement, canvas);
+      if (!layout) return null;
 
       const style = textElement === "hook" ? hookStyle : captionsStyle;
-      const text =
-        textElement === "hook"
-          ? hook
-          : getActiveWords()
-              .map((w) => w.word)
-              .join(" ");
+      const { maxLineWidth, totalHeight, textBaseline, responsiveFontSize } =
+        layout;
 
-      if (!text.trim()) return null;
-
-      ctx.font = `bold ${style.fontSize}px Impact, Arial, sans-serif`;
-
-      // Process text into lines (same logic as drawing)
-      let lines: string[];
-      if (textElement === "hook") {
-        const maxWidth = canvas.width * 0.9;
-        const hookLines = hook.split("\n");
-        const wrappedLines: string[] = [];
-
-        hookLines.forEach((line) => {
-          if (line.trim() === "") {
-            wrappedLines.push("");
-            return;
-          }
-
-          const words = line.split(" ");
-          let currentLine = "";
-
-          for (const word of words) {
-            const testLine = currentLine + (currentLine ? " " : "") + word;
-            const metrics = ctx.measureText(testLine);
-
-            if (metrics.width <= maxWidth || currentLine === "") {
-              currentLine = testLine;
-            } else {
-              wrappedLines.push(currentLine);
-              currentLine = word;
-            }
-          }
-
-          if (currentLine) {
-            wrappedLines.push(currentLine);
-          }
-        });
-        lines = wrappedLines;
-      } else {
-        const maxWidth = canvas.width * 0.9;
-        const words = text.split(" ");
-        const wrappedLines: string[] = [];
-        let currentLine = "";
-
-        for (const word of words) {
-          const testLine = currentLine + (currentLine ? " " : "") + word;
-          const metrics = ctx.measureText(testLine);
-
-          if (metrics.width <= maxWidth || currentLine === "") {
-            currentLine = testLine;
-          } else {
-            wrappedLines.push(currentLine);
-            currentLine = word;
-          }
-        }
-
-        if (currentLine) {
-          wrappedLines.push(currentLine);
-        }
-        lines = wrappedLines;
-      }
-
-      const maxLineWidth = Math.max(
-        ...lines
-          .filter((l) => l.trim())
-          .map((line) => ctx.measureText(line).width)
-      );
+      const rect = canvas.getBoundingClientRect();
       const handleSize = 12;
       const padding = 12;
-      const textX = (style.position.x / 100) * canvas.width;
-      const textY = (style.position.y / 100) * canvas.height;
-      const lineHeight = style.fontSize * 1.2;
-      const totalHeight = lines.length * lineHeight;
+      const textX = (style.position.x / 100) * rect.width;
+      const textY = (style.position.y / 100) * rect.height;
+      const lineHeight = responsiveFontSize * 1.2; // Standard line spacing
       const startY = textY - totalHeight / 2;
-      const textBaseline = style.fontSize * 0.8; // Same baseline offset as visual
 
       // Calculate handle positions (same as visual rectangle)
       const rectTop = startY - textBaseline - padding;
@@ -278,8 +329,8 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       const rectBottom = rectTop + rectHeight;
 
       const coordsInPixels = {
-        x: (coords.x / 100) * canvas.width,
-        y: (coords.y / 100) * canvas.height,
+        x: (coords.x / 100) * rect.width,
+        y: (coords.y / 100) * rect.height,
       };
 
       // Check all four corners
@@ -318,7 +369,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       if (selectedTextElement === "hook") {
         const handle = getResizeHandle(coords, "hook", canvas);
         if (handle) {
-          startResize("hook", handle);
+          startResize("hook", handle, coords);
           return;
         }
       }
@@ -326,7 +377,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       if (selectedTextElement === "captions") {
         const handle = getResizeHandle(coords, "captions", canvas);
         if (handle) {
-          startResize("captions", handle);
+          startResize("captions", handle, coords);
           return;
         }
       }
@@ -334,11 +385,8 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       // Check if click/touch is on hook text
       if (hook.trim()) {
         const hookBounds = getTextBounds(
-          hook,
-          hookStyle.position,
-          hookStyle.fontSize,
-          canvas,
-          true
+          "hook",
+          canvas
         );
         if (
           hookBounds &&
@@ -362,11 +410,8 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       if (activeWords.length > 0) {
         const captionText = activeWords.map((w) => w.word).join(" ");
         const captionBounds = getTextBounds(
-          captionText,
-          captionsStyle.position,
-          captionsStyle.fontSize,
-          canvas,
-          false
+          "captions",
+          canvas
         );
         if (
           captionBounds &&
@@ -412,28 +457,22 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
         const handle = getResizeHandle(coords, "hook", canvas);
         if (handle) {
           return handle === "top-left" || handle === "bottom-right"
-            ? "nw-resize"
-            : "ne-resize";
+            ? "nwse-resize"
+            : "nesw-resize";
         }
       }
       if (selectedTextElement === "captions") {
         const handle = getResizeHandle(coords, "captions", canvas);
         if (handle) {
           return handle === "top-left" || handle === "bottom-right"
-            ? "nw-resize"
-            : "ne-resize";
+            ? "nwse-resize"
+            : "nesw-resize";
         }
       }
 
       // Check for text hover
       if (hook.trim()) {
-        const hookBounds = getTextBounds(
-          hook,
-          hookStyle.position,
-          hookStyle.fontSize,
-          canvas,
-          true
-        );
+        const hookBounds = getTextBounds("hook", canvas);
         if (
           hookBounds &&
           coords.x >= hookBounds.left &&
@@ -447,14 +486,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
 
       const activeWords = getActiveWords();
       if (activeWords.length > 0) {
-        const captionText = activeWords.map((w) => w.word).join(" ");
-        const captionBounds = getTextBounds(
-          captionText,
-          captionsStyle.position,
-          captionsStyle.fontSize,
-          canvas,
-          false
-        );
+        const captionBounds = getTextBounds("captions", canvas);
         if (
           captionBounds &&
           coords.x >= captionBounds.left &&
@@ -472,10 +504,8 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       selectedTextElement,
       getResizeHandle,
       hook,
-      hookStyle,
-      captionsStyle,
-      getTextBounds,
       getActiveWords,
+      getTextBounds,
     ]
   );
 
@@ -493,24 +523,39 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
           y: coords.y - dragState.dragOffset.y,
         };
         updateDrag(newPosition);
-      } else if (dragState.isResizing && dragState.dragTarget) {
-        // Handle resizing - calculate new font size based on mouse movement
-        const startPosition =
-          dragState.dragTarget === "hook"
-            ? hookStyle.position
-            : captionsStyle.position;
-
-        // Calculate distance from original position to determine size
-        const distanceFromCenter = Math.sqrt(
-          Math.pow(coords.x - startPosition.x, 2) +
-            Math.pow(coords.y - startPosition.y, 2)
+      } else if (dragState.isResizing && dragState.dragTarget && dragState.initialResizeData) {
+        // Handle resizing - calculate new font size based on distance from initial handle position
+        const initialData = dragState.initialResizeData;
+        
+        // Calculate distance from initial handle position to current mouse position
+        const currentDistance = Math.sqrt(
+          Math.pow(coords.x - initialData.handlePosition.x, 2) +
+            Math.pow(coords.y - initialData.handlePosition.y, 2)
         );
-
-        // Convert distance to font size (with some scaling factor)
-        const baseFontSize = dragState.dragTarget === "hook" ? 24 : 32;
+        
+        // Calculate distance from initial handle position to text center
+        const initialDistanceToCenter = Math.sqrt(
+          Math.pow(initialData.handlePosition.x - initialData.textPosition.x, 2) +
+            Math.pow(initialData.handlePosition.y - initialData.textPosition.y, 2)
+        );
+        
+        // Calculate current distance from mouse to text center
+        const currentDistanceToCenter = Math.sqrt(
+          Math.pow(coords.x - initialData.textPosition.x, 2) +
+            Math.pow(coords.y - initialData.textPosition.y, 2)
+        );
+        
+        // Determine scaling factor: if current distance to center is greater than initial, grow text
+        // If current distance to center is smaller than initial, shrink text
+        const scaleFactor = currentDistanceToCenter / initialDistanceToCenter;
+        
+        // Apply scaling to initial font size with sensitivity adjustment
         const newFontSize = Math.max(
-          12,
-          Math.min(72, baseFontSize + (distanceFromCenter - 20) * 0.5)
+          12, // FONT_SIZE_BOUNDS.MIN
+          Math.min(
+            80, // FONT_SIZE_BOUNDS.MAX
+            initialData.fontSize * Math.pow(scaleFactor, 0.8) // Power < 1 for more gentle scaling
+          )
         );
 
         updateResize(newFontSize);
@@ -554,7 +599,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       if (selectedTextElement === "hook") {
         const handle = getResizeHandle(coords, "hook", canvas);
         if (handle) {
-          startResize("hook", handle);
+          startResize("hook", handle, coords);
           return;
         }
       }
@@ -562,7 +607,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       if (selectedTextElement === "captions") {
         const handle = getResizeHandle(coords, "captions", canvas);
         if (handle) {
-          startResize("captions", handle);
+          startResize("captions", handle, coords);
           return;
         }
       }
@@ -570,9 +615,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       // Check if touch is on hook text
       if (hook.trim()) {
         const hookBounds = getTextBounds(
-          hook,
-          hookStyle.position,
-          hookStyle.fontSize,
+          "hook",
           canvas
         );
         if (
@@ -597,9 +640,7 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
       if (activeWords.length > 0) {
         const captionText = activeWords.map((w) => w.word).join(" ");
         const captionBounds = getTextBounds(
-          captionText,
-          captionsStyle.position,
-          captionsStyle.fontSize,
+          "captions",
           canvas
         );
         if (
@@ -654,22 +695,28 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
           y: coords.y - dragState.dragOffset.y,
         };
         updateDrag(newPosition);
-      } else if (dragState.isResizing && dragState.dragTarget) {
-        // Handle resizing
-        const startPosition =
-          dragState.dragTarget === "hook"
-            ? hookStyle.position
-            : captionsStyle.position;
-
-        const distanceFromCenter = Math.sqrt(
-          Math.pow(coords.x - startPosition.x, 2) +
-            Math.pow(coords.y - startPosition.y, 2)
+      } else if (dragState.isResizing && dragState.dragTarget && dragState.initialResizeData) {
+        // Handle resizing - same logic as mouse for consistency
+        const initialData = dragState.initialResizeData;
+        
+        const currentDistanceToCenter = Math.sqrt(
+          Math.pow(coords.x - initialData.textPosition.x, 2) +
+            Math.pow(coords.y - initialData.textPosition.y, 2)
         );
-
-        const baseFontSize = dragState.dragTarget === "hook" ? 24 : 32;
+        
+        const initialDistanceToCenter = Math.sqrt(
+          Math.pow(initialData.handlePosition.x - initialData.textPosition.x, 2) +
+            Math.pow(initialData.handlePosition.y - initialData.textPosition.y, 2)
+        );
+        
+        const scaleFactor = currentDistanceToCenter / initialDistanceToCenter;
+        
         const newFontSize = Math.max(
           12,
-          Math.min(72, baseFontSize + (distanceFromCenter - 20) * 0.5)
+          Math.min(
+            80,
+            initialData.fontSize * Math.pow(scaleFactor, 0.8)
+          )
         );
 
         updateResize(newFontSize);
@@ -711,83 +758,76 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Set canvas size to match video display size
+    // Set canvas size to match video display size, accounting for device pixel ratio for sharpness
     const rect = video.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    // Calculate responsive font sizes based on canvas dimensions
+    // Base scale factor: use canvas height as reference (mobile-first approach)
+    const baseCanvasHeight = 600; // Reference height for default font sizes
+    const scaleFactor = Math.max(0.4, Math.min(2.5, rect.height / baseCanvasHeight)); // More aggressive scaling
+    
+    // Apply responsive scaling to font sizes
+    const responsiveHookFontSize = Math.round(hookStyle.fontSize * scaleFactor);
+    const responsiveCaptionsFontSize = Math.round(captionsStyle.fontSize * scaleFactor);
 
     // Draw hook (always visible at top)
-    if (hook.trim()) {
-      ctx.font = `bold ${hookStyle.fontSize}px Impact, Arial, sans-serif`;
+    const hookLayout = calculateTextLayout("hook", canvas);
+    if (hookLayout) {
+      const {
+        lines,
+        responsiveFontSize,
+        lineHeight,
+        totalHeight,
+        maxLineWidth,
+        textBaseline,
+        font,
+      } = hookLayout;
+
+      ctx.font = font;
       ctx.fillStyle = "#FFFFFF";
-      ctx.strokeStyle = selectedTextElement === "hook" ? "#00FF00" : "#000000";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle =
+        selectedTextElement === "hook" && !displayOnly ? "#00FF00" : "#000000";
+      ctx.lineWidth = Math.max(2, Math.round(responsiveFontSize * 0.02)); // Thinner, responsive outline
       ctx.textAlign = "center";
 
-      const maxWidth = canvas.width * 0.9; // 90% of canvas width
-      const hookLines = hook.split("\n"); // Support line breaks from user input
-      const wrappedLines: string[] = [];
-
-      // Process each line and wrap if needed
-      hookLines.forEach((line) => {
-        if (line.trim() === "") {
-          wrappedLines.push(""); // Preserve empty lines
-          return;
-        }
-
-        const words = line.split(" ");
-        let currentLine = "";
-
-        for (const word of words) {
-          const testLine = currentLine + (currentLine ? " " : "") + word;
-          const metrics = ctx.measureText(testLine);
-
-          if (metrics.width <= maxWidth || currentLine === "") {
-            currentLine = testLine;
-          } else {
-            wrappedLines.push(currentLine);
-            currentLine = word;
-          }
-        }
-
-        if (currentLine) {
-          wrappedLines.push(currentLine);
-        }
-      });
+      // Add shadow effect matching captions
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      ctx.shadowBlur = 0;
 
       // Calculate position from percentage
-      const hookX = (hookStyle.position.x / 100) * canvas.width;
-      const hookY = (hookStyle.position.y / 100) * canvas.height;
+      const hookX = (hookStyle.position.x / 100) * rect.width;
+      const hookY = (hookStyle.position.y / 100) * rect.height;
 
-      // Draw each line of the hook
-      const lineHeight = hookStyle.fontSize * 1.2;
-      const totalHeight = wrappedLines.length * lineHeight;
+      // Draw each line of the hook with proper spacing
       const startY = hookY - totalHeight / 2;
 
-      wrappedLines.forEach((line, index) => {
+      (lines as string[]).forEach((line, index) => {
         const y = startY + index * lineHeight;
         if (line.trim()) {
           // Only draw non-empty lines
-          ctx.strokeText(line, hookX, y);
-          ctx.fillText(line, hookX, y);
+          ctx.strokeText(line.toUpperCase(), hookX, y);
+          ctx.fillText(line.toUpperCase(), hookX, y);
         }
       });
 
-      // Draw selection indicator for hook
-      if (selectedTextElement === "hook") {
+      // Clear shadow for other elements
+      ctx.shadowColor = "transparent";
+
+      // Draw selection indicator for hook (only in edit mode)
+      if (selectedTextElement === "hook" && !displayOnly) {
         ctx.strokeStyle = "#00FF00";
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
 
         const padding = 12;
-        const maxLineWidth = Math.max(
-          ...wrappedLines
-            .filter((l) => l.trim())
-            .map((line) => ctx.measureText(line).width)
-        );
 
         // Calculate proper text bounds (accounting for text baseline)
-        const textBaseline = hookStyle.fontSize * 0.8; // Approximate baseline offset
         const rectTop = startY - textBaseline - padding;
         const rectHeight = totalHeight + padding * 2;
 
@@ -858,93 +898,161 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
 
     // Draw active words (captions)
     const activeWords = getActiveWords();
-    if (activeWords.length > 0) {
-      const captionsX = (captionsStyle.position.x / 100) * canvas.width;
-      const captionsY = (captionsStyle.position.y / 100) * canvas.height;
+    // Use the video's precise currentTime for smooth per-frame animation
+    const renderTime = video.currentTime;
+    const captionsLayout = calculateTextLayout("captions", canvas);
+    if (captionsLayout) {
+      const {
+        lines,
+        responsiveFontSize,
+        lineHeight,
+        totalHeight,
+        maxLineWidth,
+        textBaseline,
+      } = captionsLayout;
 
-      // --- 1. Universal Text Wrapping & Layout Calculation ---
-      const text = activeWords.map((w: TranscriptWord) => w.word).join(" ");
-      const maxWidth = canvas.width * 0.9;
-      const words = text.split(' ');
-      let line = '';
-      const lines = [];
-
-      // This font logic is temporary for width calculation; it will be set again for drawing.
-      ctx.font = `bold ${captionsStyle.fontSize}px ${captionStylePreference === 1 ? 'Anton' : 'Impact'}, Arial, sans-serif`;
-
-      for(let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-        if (testWidth > maxWidth && n > 0) {
-          lines.push(line.trim());
-          line = words[n] + ' ';
-        } else {
-          line = testLine;
-        }
-      }
-      lines.push(line.trim());
-
-      const lineHeight = captionsStyle.fontSize * 1.2;
-      const totalHeight = lines.length * lineHeight;
+      const captionsX = (captionsStyle.position.x / 100) * rect.width;
+      const captionsY = (captionsStyle.position.y / 100) * rect.height;
       const startY = captionsY - totalHeight / 2;
-      const maxLineWidth = Math.max(...lines.map(l => ctx.measureText(l).width));
-
+      
       // --- 2. Style-Specific Rendering ---
-      lines.forEach((line: string, i: number) => {
-        const yPos = startY + (i * lineHeight) + (captionsStyle.fontSize / 2); // Adjust for text baseline
+      (lines as TranscriptWord[][]).forEach((lineOfWords, i) => {
+        const lineText = lineOfWords.map((w) => w.word).join(" ");
+        const yPos =
+          startY + i * lineHeight + responsiveFontSize / 2; // Adjust for text baseline
 
-        // Style 1: Red highlight with Anton font
+        // Style 1: Red highlight with Anton font (matching backend styling)
         if (captionStylePreference === 1) {
-          ctx.font = `bold ${captionsStyle.fontSize}px Anton, sans-serif`;
-          ctx.lineWidth = 4;
+          ctx.font = `bold ${responsiveFontSize}px Anton, sans-serif`;
+          ctx.lineWidth = Math.max(
+            2,
+            Math.round(responsiveFontSize * 0.02)
+          ); // Thinner outline
           ctx.strokeStyle = "#000000";
 
-          const wordsInLine = line.split(' ');
-          const totalLineWidth = ctx.measureText(line).width;
+          // Add shadow effect matching backend
+          ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // shadowcolor with 50% opacity
+          ctx.shadowOffsetX = 1; // Softer shadow offset
+          ctx.shadowOffsetY = 1; // Softer shadow offset
+          ctx.shadowBlur = 0; // Sharp shadow like backend
+
+          const totalLineWidth = ctx.measureText(lineText).width;
           let currentX = captionsX - totalLineWidth / 2;
+          ctx.textAlign = "left";
 
-          wordsInLine.forEach(wordText => {
-            const word = activeWords.find(w => w.word === wordText && !(w as any).drawn);
-            if (!word) return; // Should not happen if logic is correct
+          lineOfWords.forEach((word) => {
+            const isCurrentWord =
+              currentTime >= word.start && currentTime <= word.end;
+            ctx.fillStyle = isCurrentWord ? "#FF0000" : "#FFFFFF"; // primarycolor: white, with red highlight
 
-            const isCurrentWord = currentTime >= word.start && currentTime <= word.end;
-            ctx.fillStyle = isCurrentWord ? "#FF0000" : "#FFFFFF";
+            const wordText = word.word;
 
-            const wordWidth = ctx.measureText(wordText).width;
-            const wordCenterX = currentX + wordWidth / 2;
-            
-            ctx.strokeText(wordText, wordCenterX, yPos);
-            ctx.fillText(wordText, wordCenterX, yPos);
-            
-            currentX += wordWidth + ctx.measureText(' ').width;
-            (word as any).drawn = true; // Mark as drawn to handle duplicate words
+            ctx.strokeText(wordText, currentX, yPos);
+            ctx.fillText(wordText, currentX, yPos);
+
+            currentX += ctx.measureText(wordText + " ").width;
           });
 
-        } else {
-          // Default style
-          ctx.font = `bold ${captionsStyle.fontSize}px Impact, Arial, sans-serif`;
-          ctx.fillStyle = "#FFFFFF";
-          ctx.strokeStyle = selectedTextElement === "captions" ? "#00FF00" : "#000000";
-          ctx.lineWidth = 4;
+          // Clear shadow for other elements
+          ctx.shadowColor = "transparent";
+          ctx.textAlign = "center"; // Reset alignment
+        } else if (captionStylePreference === 3) {
+          // Style 3: Karaoke (Impact, uppercase). Base orange; progress turns white smoothly
+          ctx.font = `bold ${responsiveFontSize}px Impact, Arial, sans-serif`;
+          // Slightly increased outline for readability, still thinner than default style
+          ctx.lineWidth = Math.max(
+            1.8,
+            responsiveFontSize * 0.022
+          );
+          ctx.strokeStyle = "#000000";
+
+          // Add subtle shadow like default style
+          ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
+          ctx.shadowBlur = 0;
+
+          const lineTextUpper = lineText.toUpperCase();
+          const totalLineWidth = ctx.measureText(lineTextUpper).width;
+          let currentX = captionsX - totalLineWidth / 2;
+          ctx.textAlign = "left";
+
+          lineOfWords.forEach((word) => {
+            const wordText = word.word.toUpperCase();
+            const wordWidth = ctx.measureText(wordText).width;
+            const spaceWidth = ctx.measureText(" ").width;
+
+            // Outline first so it doesn't visually shrink the fill
+            ctx.strokeText(wordText, currentX, yPos);
+
+            // Base: draw full word in orange
+            ctx.fillStyle = "#FFA500"; // orange
+            ctx.fillText(wordText, currentX, yPos);
+
+            // Progress: compute smooth ratio within the word
+            let progress = 0;
+            if (renderTime >= word.end) progress = 1;
+            else if (renderTime > word.start) {
+              const duration = Math.max(0.001, word.end - word.start);
+              progress = Math.min(1, Math.max(0, (renderTime - word.start) / duration));
+            }
+
+            if (progress > 0) {
+              ctx.save();
+              ctx.beginPath();
+              // Clip a rectangle covering the completed portion of the word (left -> right)
+              ctx.rect(currentX, yPos - responsiveFontSize, wordWidth * progress, responsiveFontSize * 1.2);
+              ctx.clip();
+              ctx.fillStyle = "#FFFFFF"; // white for completed part
+              ctx.fillText(wordText, currentX, yPos);
+              ctx.restore();
+            }
+
+            currentX += wordWidth + spaceWidth;
+          });
+
+          // Clear shadow and reset alignment for subsequent drawing
+          ctx.shadowColor = "transparent";
           ctx.textAlign = "center";
-          
-          ctx.strokeText(line, captionsX, yPos);
-          ctx.fillText(line, captionsX, yPos);
+        } else {
+          // Default style matching Python backend
+          ctx.font = `bold ${responsiveFontSize}px Impact, Arial, sans-serif`;
+          ctx.fillStyle = "#FFFFFF"; // primarycolor: white
+          ctx.strokeStyle =
+            selectedTextElement === "captions" && !displayOnly
+              ? "#00FF00"
+              : "#000000";
+          ctx.lineWidth = Math.max(
+            2,
+            Math.round(responsiveFontSize * 0.02)
+          ); // Thinner outline
+          ctx.textAlign = "center"; // alignment: 2 (center)
+
+          // Add shadow effect (shadow: 2.0, shadowcolor: black with 50% opacity)
+          ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // shadowcolor with 50% opacity
+          ctx.shadowOffsetX = 1; // Softer shadow offset
+          ctx.shadowOffsetY = 1; // Softer shadow offset
+          ctx.shadowBlur = 0; // Sharp shadow like backend
+
+          // Draw shadow first, then stroke, then fill
+          ctx.strokeText(lineText, captionsX, yPos);
+          ctx.fillText(lineText, captionsX, yPos);
+
+          // Clear shadow for other elements
+          ctx.shadowColor = "transparent";
         }
       });
-      
-      // Reset drawn flag for next frame
-      activeWords.forEach(w => (w as any).drawn = false);
 
-      // --- 3. Universal Selection & Resizing UI ---
-      if (selectedTextElement === "captions") {
+      // Reset drawn flag for next frame
+      activeWords.forEach((w) => ((w as any).drawn = false));
+
+      // --- 3. Universal Selection & Resizing UI (only in edit mode) ---
+      if (selectedTextElement === "captions" && !displayOnly) {
         ctx.strokeStyle = "#00FF00";
         ctx.lineWidth = 2;
         ctx.setLineDash([10, 5]); // Dashed line for selection
 
         const padding = 12;
-        const textBaseline = captionsStyle.fontSize * 0.8;
         const rectTop = startY - textBaseline - padding;
         const rectHeight = totalHeight + padding * 2;
 
@@ -1007,7 +1115,17 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
         });
       }
     }
-  }, [hook, hookStyle, captionsStyle, selectedTextElement, getActiveWords, currentTime, captionStylePreference]);
+  }, [
+    hook,
+    hookStyle,
+    captionsStyle,
+    selectedTextElement,
+    getActiveWords,
+    currentTime,
+    captionStylePreference,
+    displayOnly,
+    calculateTextLayout,
+  ]);
 
   // Animation loop for smooth rendering
   const animate = useCallback(() => {
@@ -1061,20 +1179,20 @@ export function VideoPreview({ videoUrl, className = "" }: VideoPreviewProps) {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          pointerEvents: isEditMode ? "auto" : "none",
+          pointerEvents: (isEditMode && !displayOnly) ? "auto" : "none",
           cursor: dragState.isDragging
             ? "grabbing"
             : dragState.isResizing
-            ? "nw-resize"
+            ? "nwse-resize"
             : "default",
         }}
-        onMouseDown={isEditMode ? handleCanvasMouseDown : undefined}
-        onMouseMove={isEditMode ? handleCanvasMouseMove : undefined}
-        onMouseUp={isEditMode ? handleCanvasMouseUp : undefined}
-        onMouseLeave={isEditMode ? handleCanvasMouseUp : undefined}
-        onTouchStart={isEditMode ? handleCanvasTouchStart : undefined}
-        onTouchMove={isEditMode ? handleCanvasTouchMove : undefined}
-        onTouchEnd={isEditMode ? handleCanvasTouchEnd : undefined}
+        onMouseDown={(isEditMode && !displayOnly) ? handleCanvasMouseDown : undefined}
+        onMouseMove={(isEditMode && !displayOnly) ? handleCanvasMouseMove : undefined}
+        onMouseUp={(isEditMode && !displayOnly) ? handleCanvasMouseUp : undefined}
+        onMouseLeave={(isEditMode && !displayOnly) ? handleCanvasMouseUp : undefined}
+        onTouchStart={(isEditMode && !displayOnly) ? handleCanvasTouchStart : undefined}
+        onTouchMove={(isEditMode && !displayOnly) ? handleCanvasTouchMove : undefined}
+        onTouchEnd={(isEditMode && !displayOnly) ? handleCanvasTouchEnd : undefined}
       />
     </div>
   );

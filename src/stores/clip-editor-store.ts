@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { CLIP_CONFIG } from '@/lib/constants';
+import { VIDEO_GENERATION } from '@/lib/constants';
 
 export interface TranscriptWord {
   word: string;
@@ -23,6 +25,12 @@ export interface DragState {
   dragOffset: { x: number; y: number };
   isResizing: boolean;
   resizeHandle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | null;
+  // Store initial resize state for better UX
+  initialResizeData: {
+    handlePosition: { x: number; y: number };
+    fontSize: number;
+    textPosition: { x: number; y: number };
+  } | null;
 }
 
 export interface EditorState {
@@ -46,6 +54,14 @@ export interface EditorState {
 
   // Caption style preference from project settings
   captionStylePreference: number | null;
+  
+  // Original state for change tracking
+  originalState: {
+    transcript: TranscriptWord[];
+    hook: string;
+    hookStyle: TextStyle;
+    captionsStyle: TextStyle;
+  } | null;
 }
 
 export interface EditorActions {
@@ -63,7 +79,7 @@ export interface EditorActions {
   
   setHook: (hook: string) => void;
   setEditMode: (enabled: boolean) => void;
-  setCaptionStylePreference: (styleId: number) => void;
+  setProjectStylePreference: (styleId: number) => void;
   
   // Text positioning and styling actions
   updateHookStyle: (style: Partial<TextStyle>) => void;
@@ -78,13 +94,22 @@ export interface EditorActions {
   
   endDrag: () => void;
   
-  startResize: (target: 'hook' | 'captions', handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => void;
+  startResize: (target: 'hook' | 'captions', handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right', handlePosition: { x: number; y: number }) => void;
   
   updateResize: (fontSize: number) => void;
   
   endResize: () => void;
   
   resetTextStyles: () => void;
+  
+  // Change tracking actions
+  initializeOriginalState: (transcript: TranscriptWord[], hook: string, hookStyle: TextStyle, captionsStyle: TextStyle) => void;
+  initializeStyles: (hookStyle: TextStyle | null, captionsStyle: TextStyle | null, projectStyle: number | null) => void;
+  hasChanges: () => boolean;
+  getChanges: () => Partial<{ transcript: TranscriptWord[]; hook: string; hookStyle: TextStyle; captionsStyle: TextStyle; }>;
+  markAsSaved: () => void;
+  resetState: () => void;
+  _deepEqual: (a: any, b: any) => boolean;
   
   // Computed getters
   getActiveWords: () => TranscriptWord[];
@@ -102,23 +127,19 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
   isEditMode: false,
   
   // Default text styling and positioning
-  hookStyle: {
-    fontSize: 24,
-    position: { x: 50, y: 15 } // Center horizontal, 15% from top
-  },
-  captionsStyle: {
-    fontSize: 32,
-    position: { x: 50, y: 80 } // Center horizontal, 80% from top
-  },
+  hookStyle: { ...CLIP_CONFIG.DEFAULT_HOOK_STYLE },
+  captionsStyle: { ...CLIP_CONFIG.DEFAULT_CAPTIONS_STYLE },
   selectedTextElement: null,
   dragState: {
     isDragging: false,
     dragTarget: null,
     dragOffset: { x: 0, y: 0 },
     isResizing: false,
-    resizeHandle: null
+    resizeHandle: null,
+    initialResizeData: null
   },
   captionStylePreference: null,
+  originalState: null,
 
   // Actions
   setCurrentTime: (time: number) => set({ currentTime: time }),
@@ -218,7 +239,7 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
   
   setHook: (hook: string) => set({ hook }),
   setEditMode: (enabled: boolean) => set({ isEditMode: enabled }),
-  setCaptionStylePreference: (styleId: number) => set({ captionStylePreference: styleId }),
+  setProjectStylePreference: (styleId: number) => set({ captionStylePreference: styleId }),
   
   // Text positioning and styling actions
   updateHookStyle: (style: Partial<TextStyle>) => {
@@ -245,7 +266,8 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
         dragTarget: target,
         dragOffset: offset,
         isResizing: false,
-        resizeHandle: null
+        resizeHandle: null,
+        initialResizeData: null
       }
     });
   },
@@ -256,8 +278,8 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
     
     // Constrain position to bounds (with some padding)
     const constrainedPosition = {
-      x: Math.max(5, Math.min(95, position.x)),
-      y: Math.max(5, Math.min(95, position.y))
+      x: Math.max(CLIP_CONFIG.POSITION_BOUNDS.MIN, Math.min(CLIP_CONFIG.POSITION_BOUNDS.MAX, position.x)),
+      y: Math.max(CLIP_CONFIG.POSITION_BOUNDS.MIN, Math.min(CLIP_CONFIG.POSITION_BOUNDS.MAX, position.y))
     };
     
     if (dragState.dragTarget === 'hook') {
@@ -283,12 +305,16 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
         ...state.dragState,
         isDragging: false,
         dragTarget: null,
-        dragOffset: { x: 0, y: 0 }
+        dragOffset: { x: 0, y: 0 },
+        initialResizeData: null
       }
     }));
   },
   
-  startResize: (target: 'hook' | 'captions', handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => {
+  startResize: (target: 'hook' | 'captions', handle: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right', handlePosition: { x: number; y: number }) => {
+    const state = get();
+    const currentStyle = target === 'hook' ? state.hookStyle : state.captionsStyle;
+    
     set({
       selectedTextElement: target,
       dragState: {
@@ -296,7 +322,12 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
         dragTarget: target,
         dragOffset: { x: 0, y: 0 },
         isResizing: true,
-        resizeHandle: handle
+        resizeHandle: handle,
+        initialResizeData: {
+          handlePosition: { ...handlePosition },
+          fontSize: currentStyle.fontSize,
+          textPosition: { ...currentStyle.position }
+        }
       }
     });
   },
@@ -306,7 +337,7 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
     if (!dragState.isResizing || !dragState.dragTarget) return;
     
     // Constrain font size to reasonable bounds
-    const constrainedSize = Math.max(12, Math.min(72, fontSize));
+    const constrainedSize = Math.max(CLIP_CONFIG.FONT_SIZE_BOUNDS.MIN, Math.min(CLIP_CONFIG.FONT_SIZE_BOUNDS.MAX, fontSize));
     
     if (dragState.dragTarget === 'hook') {
       set(state => ({
@@ -331,29 +362,149 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
         ...state.dragState,
         isResizing: false,
         dragTarget: null,
-        resizeHandle: null
+        resizeHandle: null,
+        initialResizeData: null
       }
     }));
   },
   
   resetTextStyles: () => {
     set({
-      hookStyle: {
-        fontSize: 24,
-        position: { x: 50, y: 15 }
-      },
-      captionsStyle: {
-        fontSize: 32,
-        position: { x: 50, y: 80 }
-      },
+      hookStyle: { ...CLIP_CONFIG.DEFAULT_HOOK_STYLE },
+      captionsStyle: { ...CLIP_CONFIG.DEFAULT_CAPTIONS_STYLE },
       selectedTextElement: null,
       dragState: {
         isDragging: false,
         dragTarget: null,
         dragOffset: { x: 0, y: 0 },
         isResizing: false,
-        resizeHandle: null
+        resizeHandle: null,
+        initialResizeData: null
       }
+    });
+  },
+  
+  // Helper function for deep equality (used by change tracking)
+  _deepEqual: (a: any, b: any): boolean => {
+    const deepEqual = (x: any, y: any): boolean => {
+      if (x === y) return true;
+      if (x == null || y == null) return false;
+      if (typeof x !== 'object' || typeof y !== 'object') return false;
+      
+      const keysX = Object.keys(x);
+      const keysY = Object.keys(y);
+      
+      if (keysX.length !== keysY.length) return false;
+      
+      for (let key of keysX) {
+        if (!keysY.includes(key)) return false;
+        if (!deepEqual(x[key], y[key])) return false;
+      }
+      
+      return true;
+    };
+    
+    return deepEqual(a, b);
+  },
+  
+  // Change tracking functions
+  initializeOriginalState: (transcript: TranscriptWord[], hook: string, hookStyle: TextStyle, captionsStyle: TextStyle) => {
+    set({
+      originalState: {
+        transcript: JSON.parse(JSON.stringify(transcript)), // Deep copy
+        hook,
+        hookStyle: JSON.parse(JSON.stringify(hookStyle)),
+        captionsStyle: JSON.parse(JSON.stringify(captionsStyle))
+      }
+    });
+  },
+
+  initializeStyles: (hookStyle: TextStyle | null, captionsStyle: TextStyle | null, projectStyle: number | null) => {
+    let finalHookStyle: TextStyle = { ...CLIP_CONFIG.DEFAULT_HOOK_STYLE };
+    if (hookStyle) {
+      finalHookStyle = hookStyle;
+    }
+
+    let finalCaptionsStyle: TextStyle = { ...CLIP_CONFIG.DEFAULT_CAPTIONS_STYLE };
+    if (captionsStyle) {
+      finalCaptionsStyle = captionsStyle;
+    } else if (projectStyle && (VIDEO_GENERATION.CAPTION_STYLES as Record<number, any>)[projectStyle]) {
+      finalCaptionsStyle = { ...(VIDEO_GENERATION.CAPTION_STYLES as Record<number, any>)[projectStyle] };
+    }
+    
+    set({
+      hookStyle: finalHookStyle,
+      captionsStyle: finalCaptionsStyle,
+    });
+  },
+  
+  hasChanges: () => {
+    const { originalState, transcript, hook, hookStyle, captionsStyle, _deepEqual } = get();
+    if (!originalState) return false;
+    
+    return !_deepEqual(transcript, originalState.transcript) ||
+           hook !== originalState.hook ||
+           !_deepEqual(hookStyle, originalState.hookStyle) ||
+           !_deepEqual(captionsStyle, originalState.captionsStyle);
+  },
+  
+  getChanges: () => {
+    const { originalState, transcript, hook, hookStyle, captionsStyle, _deepEqual } = get();
+    if (!originalState) return {};
+    
+    const changes: Partial<{ transcript: TranscriptWord[]; hook: string; hookStyle: TextStyle; captionsStyle: TextStyle; }> = {};
+    
+    if (!_deepEqual(transcript, originalState.transcript)) {
+      changes.transcript = transcript;
+    }
+    
+    if (hook !== originalState.hook) {
+      changes.hook = hook;
+    }
+    
+    if (!_deepEqual(hookStyle, originalState.hookStyle)) {
+      changes.hookStyle = hookStyle;
+    }
+    
+    if (!_deepEqual(captionsStyle, originalState.captionsStyle)) {
+      changes.captionsStyle = captionsStyle;
+    }
+    
+    return changes;
+  },
+  
+  markAsSaved: () => {
+    const { transcript, hook, hookStyle, captionsStyle } = get();
+    set({
+      originalState: {
+        transcript: JSON.parse(JSON.stringify(transcript)), // Deep copy
+        hook,
+        hookStyle: JSON.parse(JSON.stringify(hookStyle)), // Deep copy for consistency
+        captionsStyle: JSON.parse(JSON.stringify(captionsStyle)) // Deep copy for consistency
+      }
+    });
+  },
+
+  resetState: () => {
+    set({
+      currentTime: 0,
+      isPlaying: false,
+      duration: 0,
+      transcript: [],
+      hook: '',
+      isEditMode: false,
+      hookStyle: { ...CLIP_CONFIG.DEFAULT_HOOK_STYLE },
+      captionsStyle: { ...CLIP_CONFIG.DEFAULT_CAPTIONS_STYLE },
+      selectedTextElement: null,
+    dragState: {
+      isDragging: false,
+      dragTarget: null,
+      dragOffset: { x: 0, y: 0 },
+      isResizing: false,
+      resizeHandle: null,
+      initialResizeData: null
+    },
+      originalState: null
     });
   },
   

@@ -66,3 +66,59 @@ export const YOUTUBE_VALIDATION = {
   CHANNEL_ID_REGEX: /^UC[a-zA-Z0-9_-]{22}$/,
   MAX_INPUT_LENGTH: 30,
 } as const
+
+
+// Constants for clip editor functionality
+
+export const CLIP_CONFIG = {
+  // Video hosting
+  R2_DOMAIN: 'https://castclip.revolt-ai.com',
+  
+  // Default text styles
+  DEFAULT_HOOK_STYLE: {
+    fontSize: 22, // A little smaller
+    position: { x: 50, y: 22 } // A little higher
+  },
+  
+  DEFAULT_CAPTIONS_STYLE: {
+    fontSize: 23, // One size bigger
+    position: { x: 50, y: 70 } // Moved down a little
+  },
+  
+  // Text positioning constraints
+  POSITION_BOUNDS: {
+    MIN: 5,
+    MAX: 95
+  },
+  
+  // Font size constraints  
+  FONT_SIZE_BOUNDS: {
+    MIN: 12,
+    MAX: 80 // Reasonable max for the corrected smaller font sizes
+  }
+} as const;
+
+// Helper function to get video URL with consistent logic
+export function getClipVideoUrl(clip: { rawClipUrl?: string | null; s3Key?: string | null }): string | null {
+  if (clip.rawClipUrl) return clip.rawClipUrl;
+  if (!clip.s3Key) return null;
+  
+  return clip.s3Key.startsWith('http') 
+    ? clip.s3Key 
+    : `${CLIP_CONFIG.R2_DOMAIN}/${clip.s3Key}`;
+}
+
+// Helper function to check if clip is editable
+export function isClipEditable(clip: { 
+  transcript?: any; 
+  rawClipUrl?: string | null; 
+  s3Key?: string | null; 
+}): boolean {
+  return !!(
+    clip.transcript &&
+    Array.isArray(clip.transcript) &&
+    clip.transcript.length > 0 &&
+    (clip.rawClipUrl || clip.s3Key)
+  );
+}
+

@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Play, Pause, RotateCcw, Plus, Edit3, Trash2, PlusCircle, Move, RotateCw } from 'lucide-react';
+import { Edit3, Trash2, PlusCircle } from 'lucide-react';
 
 interface TranscriptEditorProps {
   className?: string;
@@ -18,20 +17,10 @@ export function TranscriptEditor({ className = "" }: TranscriptEditorProps) {
     transcript,
     hook,
     currentTime,
-    isPlaying,
-    isEditMode,
-    hookStyle,
-    captionsStyle,
-    selectedTextElement,
-    dragState,
     updateWord,
     insertWord,
     deleteWord,
-    setHook,
-    setEditMode,
-    resetTextStyles,
-    setSelectedTextElement,
-    getActiveWords
+    setHook
   } = useClipEditorStore();
 
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
@@ -224,7 +213,8 @@ export function TranscriptEditor({ className = "" }: TranscriptEditorProps) {
                           <span
                             className={getWordStyling(word, index)}
                             onClick={() => handleWordClick(index)}
-                            title={`${formatTime(word.start)} - ${formatTime(word.end)}\nClick for options`}
+                            onDoubleClick={() => startWordEdit(index)}
+                            title={`${formatTime(word.start)} - ${formatTime(word.end)}\nClick for options, double-click to edit`}
                           >
                             {word.word}
                           </span>
@@ -317,7 +307,7 @@ export function TranscriptEditor({ className = "" }: TranscriptEditorProps) {
         
         <div className="text-xs text-gray-500 space-y-1">
           <p>
-            <strong>Click any word</strong> to select it and see editing options. 
+            <strong>Click any word</strong> to select it for options, or <strong>double-click</strong> to edit it directly.
             Changes appear in real-time on the video.
           </p>
         </div>

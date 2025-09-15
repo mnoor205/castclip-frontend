@@ -102,6 +102,8 @@ model Clip {
   renderedClipUrl String?  // Will be null until the user exports the final video
   transcript      Json?    // Store the word-level transcript from the backend
   hook            String?  // The AI-generated hook
+  captionsStyle   Json?
+  hookStyle       Json?
   start           Float?   // Start time in seconds from the original video
   end             Float?   // End time in seconds from the original video
   createdAt       DateTime @default(now())

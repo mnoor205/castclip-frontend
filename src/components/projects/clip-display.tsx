@@ -1,7 +1,7 @@
 "use client";
 import type { Clip as PrismaClip } from "@prisma/client";
-import { Download, Youtube, Trash2, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { Download, Youtube, Trash2, Loader2, Edit } from "lucide-react";
+import { useEffect, useRef, useState, useTransition, RefObject } from "react";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import {
@@ -15,28 +15,29 @@ import {
 } from "@/components/ui/dialog";
 import { deleteClip } from "@/actions/delete";
 import { toast } from "sonner";
+import { getClipVideoUrl, isClipEditable } from "@/lib/constants";
+import { VideoPreview } from "@/components/editor/video-preview";
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 
 interface Clip extends PrismaClip {
   youtubeUrl?: string;
+  project?: {
+    captionStyle?: number | null;
+  } | null;
 }
 
 function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isVisible = useIntersectionObserver(cardRef as RefObject<Element>);
   const [isDeleting, startDeleteTransition] = useTransition();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      const video = videoRef.current;
+      const video = cardRef.current?.querySelector('video'); // More robust selector
       if (!video) return;
 
       if (document.fullscreenElement === video) {
-        // Rare case if video itself goes fullscreen
-        video.style.objectFit = "contain";
-      } else if (
-        document.fullscreenElement &&
-        document.fullscreenElement.contains(video)
-      ) {
         video.style.objectFit = "contain";
       } else {
         video.style.objectFit = "cover";
@@ -63,30 +64,69 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
     });
   };
 
+  const videoUrl = getClipVideoUrl(clip);
+  const isEditable = !readOnly && isClipEditable(clip);
+
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div ref={cardRef} className="flex w-full flex-col gap-2">
       <div className="relative w-full rounded-md overflow-hidden bg-muted aspect-[9/16]">
-        <video
-          src={
-            clip.rawClipUrl
-              ?? (clip.s3Key
-                    ? (clip.s3Key.startsWith("http") ? clip.s3Key : `https://castclip.revolt-ai.com/${clip.s3Key}`)
-                    : undefined)
-          }
-          controls
-          ref={videoRef}
-          preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        {isVisible && videoUrl ? (
+          <VideoPreview
+            videoUrl={videoUrl}
+            displayOnly={true}
+            clip={{
+              transcript: clip.transcript,
+              hook: clip.hook,
+              hookStyle: (clip.hookStyle as any) ?? undefined,
+              captionsStyle: (clip.captionsStyle as any) ?? undefined,
+              captionStylePreference: clip.project?.captionStyle ?? 1,
+            }}
+            className="w-full h-full"
+          />
+        ) : (
+          <div className="absolute inset-0 w-full h-full bg-gray-200 flex items-center justify-center">
+            {videoUrl ? (
+              <span className="text-gray-500">Loading video...</span>
+            ) : (
+              <span className="text-gray-500">Video not available</span>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-row gap-1 sm:gap-2">
+        {clip.youtubeUrl ? (
+          <Link
+            className="flex flex-col gap-2 flex-1"
+            href={clip.youtubeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" size="sm" className="w-full text-xs sm:text-sm">
+              <Youtube className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sm:hidden">Watch</span>
+              <span className="hidden sm:inline">Watch Original</span>
+            </Button>
+          </Link>
+        ) : (
+          <Link href={getClipVideoUrl(clip) || '#'} className="flex-1">
+            <Button variant="outline" className="w-full text-xs sm:text-sm" size="sm">
+              <Download className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
+              Download
+            </Button>
+          </Link>
+        )}
+        {isEditable && (
+          <Link href={`/projects/${clip.projectId}/edit/${clip.id}`}>
+            <Button variant="outline" size="sm">
+              <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+          </Link>
+        )}
         {!readOnly && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 h-7 w-7 opacity-80 hover:opacity-100"
-              >
-                <Trash2 className="h-4 w-4" />
+              <Button variant="destructive" size="sm">
+                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -107,33 +147,6 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        )}
-      </div>
-      <div className="flex flex-col gap-2">
-        {clip.youtubeUrl ? (
-          <Link
-            className="flex flex-col gap-2"
-            href={clip.youtubeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button variant="outline" size="sm" className="w-full">
-              <Youtube className="mr-1.5 h-4 w-4" />
-              Watch Original
-            </Button>
-          </Link>
-        ) : (
-          <Link href={
-            clip.rawClipUrl
-              ?? (clip.s3Key?.startsWith("http")
-                    ? clip.s3Key
-                    : `https://castclip.revolt-ai.com/${clip.s3Key}`)
-          }>
-            <Button variant="outline" className="w-full">
-              <Download className="mr-1.5 h-4 w-4" />
-              Download
-            </Button>
-          </Link>
         )}
       </div>
     </div>

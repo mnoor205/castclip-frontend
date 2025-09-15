@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "ProjectSource" AS ENUM ('UPLOADED_FILE', 'YOUTUBE_CHANNEL', 'VIDEO_URL');
+
 -- CreateTable
 CREATE TABLE "user" (
     "id" TEXT NOT NULL,
@@ -9,6 +12,8 @@ CREATE TABLE "user" (
     "stripeCustomerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "youtubeChannelId" TEXT,
+    "youtubeChannelTitle" TEXT,
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
@@ -61,13 +66,19 @@ CREATE TABLE "verification" (
 -- CreateTable
 CREATE TABLE "UploadedFile" (
     "id" TEXT NOT NULL,
-    "s3Key" TEXT NOT NULL,
+    "s3Key" TEXT,
     "displayName" TEXT,
     "uploaded" BOOLEAN NOT NULL DEFAULT false,
     "status" TEXT NOT NULL DEFAULT 'queued',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "userId" TEXT NOT NULL,
+    "clipCount" INTEGER NOT NULL DEFAULT 1,
+    "captionStyle" INTEGER NOT NULL DEFAULT 1,
+    "externalUrl" TEXT,
+    "source" "ProjectSource" NOT NULL DEFAULT 'UPLOADED_FILE',
+    "thumbnailUrl" TEXT,
+    "failureReason" TEXT,
 
     CONSTRAINT "UploadedFile_pkey" PRIMARY KEY ("id")
 );
@@ -75,26 +86,40 @@ CREATE TABLE "UploadedFile" (
 -- CreateTable
 CREATE TABLE "Clip" (
     "id" TEXT NOT NULL,
-    "s3Key" TEXT NOT NULL,
+    "s3Key" TEXT,
+    "rawClipUrl" TEXT,
+    "renderedClipUrl" TEXT,
+    "transcript" JSONB,
+    "hook" TEXT,
+    "captionsStyle" JSONB,
+    "hookStyle" JSONB,
+    "start" DOUBLE PRECISION,
+    "end" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "uploadedFileId" TEXT,
+    "uploadedFileId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
 
     CONSTRAINT "Clip_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "user_stripeCustomerId_key" ON "user"("stripeCustomerId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
+CREATE UNIQUE INDEX "user_youtubeChannelId_key" ON "user"("youtubeChannelId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
 
 -- CreateIndex
 CREATE INDEX "UploadedFile_s3Key_idx" ON "UploadedFile"("s3Key");
+
+-- CreateIndex
+CREATE INDEX "Clip_rawClipUrl_idx" ON "Clip"("rawClipUrl");
 
 -- CreateIndex
 CREATE INDEX "Clip_s3Key_idx" ON "Clip"("s3Key");
@@ -113,3 +138,4 @@ ALTER TABLE "Clip" ADD CONSTRAINT "Clip_uploadedFileId_fkey" FOREIGN KEY ("uploa
 
 -- AddForeignKey
 ALTER TABLE "Clip" ADD CONSTRAINT "Clip_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

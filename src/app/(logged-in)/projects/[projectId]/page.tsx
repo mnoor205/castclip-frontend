@@ -28,7 +28,13 @@ export default async function ProjectPage({ params }: PageProps) {
       userId: user.id,
     },
     include: {
-      Clip: true,
+      Clip: {
+        include: {
+          project: {
+            select: { captionStyle: true }
+          }
+        }
+      },
     },
   });
 
@@ -46,14 +52,6 @@ export default async function ProjectPage({ params }: PageProps) {
         <BackButton fallbackHref="/projects" />
         <h1 className="flex-1 text-center text-2xl sm:text-3xl font-bold truncate">{title}</h1>
         <div className="flex items-center gap-2">
-          {hasClips && (
-            <Link href={`/projects/${project.id}/edit`}>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Edit className="h-4 w-4" />
-                <span className="hidden sm:inline">Edit Clips</span>
-              </Button>
-            </Link>
-          )}
           <DeleteProjectButton projectId={project.id} />
         </div>
       </div>
