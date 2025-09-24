@@ -43,9 +43,6 @@ export interface EditorState {
   transcript: TranscriptWord[];
   hook: string;
   
-  // Edit mode
-  isEditMode: boolean;
-  
   // Text styling and positioning
   hookStyle: TextStyle;
   captionsStyle: TextStyle;
@@ -53,7 +50,7 @@ export interface EditorState {
   dragState: DragState;
 
   // Caption style preference from project settings
-  captionStylePreference: number | null;
+  captionStyleId: number | null;
   
   // Original state for change tracking
   originalState: {
@@ -78,8 +75,7 @@ export interface EditorActions {
   deleteWord: (index: number) => void;
   
   setHook: (hook: string) => void;
-  setEditMode: (enabled: boolean) => void;
-  setProjectStylePreference: (styleId: number) => void;
+  setCaptionStyleId: (styleId: number) => void;
   
   // Text positioning and styling actions
   updateHookStyle: (style: Partial<TextStyle>) => void;
@@ -124,7 +120,6 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
   duration: 0,
   transcript: [],
   hook: '',
-  isEditMode: false,
   
   // Default text styling and positioning
   hookStyle: { ...CLIP_CONFIG.DEFAULT_HOOK_STYLE },
@@ -138,7 +133,7 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
     resizeHandle: null,
     initialResizeData: null
   },
-  captionStylePreference: null,
+  captionStyleId: null,
   originalState: null,
 
   // Actions
@@ -238,8 +233,7 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
   },
   
   setHook: (hook: string) => set({ hook }),
-  setEditMode: (enabled: boolean) => set({ isEditMode: enabled }),
-  setProjectStylePreference: (styleId: number) => set({ captionStylePreference: styleId }),
+  setCaptionStyleId: (styleId: number) => set({ captionStyleId: styleId }),
   
   // Text positioning and styling actions
   updateHookStyle: (style: Partial<TextStyle>) => {
@@ -276,10 +270,15 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
     const { dragState } = get();
     if (!dragState.isDragging || !dragState.dragTarget) return;
     
+    const offsetCorrectedPosition = {
+      x: position.x - dragState.dragOffset.x,
+      y: position.y - dragState.dragOffset.y,
+    };
+
     // Constrain position to bounds (with some padding)
     const constrainedPosition = {
-      x: Math.max(CLIP_CONFIG.POSITION_BOUNDS.MIN, Math.min(CLIP_CONFIG.POSITION_BOUNDS.MAX, position.x)),
-      y: Math.max(CLIP_CONFIG.POSITION_BOUNDS.MIN, Math.min(CLIP_CONFIG.POSITION_BOUNDS.MAX, position.y))
+      x: Math.max(CLIP_CONFIG.POSITION_BOUNDS.MIN, Math.min(CLIP_CONFIG.POSITION_BOUNDS.MAX, offsetCorrectedPosition.x)),
+      y: Math.max(CLIP_CONFIG.POSITION_BOUNDS.MIN, Math.min(CLIP_CONFIG.POSITION_BOUNDS.MAX, offsetCorrectedPosition.y))
     };
     
     if (dragState.dragTarget === 'hook') {
@@ -492,7 +491,6 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
       duration: 0,
       transcript: [],
       hook: '',
-      isEditMode: false,
       hookStyle: { ...CLIP_CONFIG.DEFAULT_HOOK_STYLE },
       captionsStyle: { ...CLIP_CONFIG.DEFAULT_CAPTIONS_STYLE },
       selectedTextElement: null,

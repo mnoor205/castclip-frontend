@@ -62,51 +62,6 @@ export async function updateClip(data: ClipUpdateData, renderData: { projectCapt
         ...(updateData.captionsStyle && { captionsStyle: updateData.captionsStyle }),
       },
     });
-
-    // --- Trigger Backend Rendering ---
-    const renderEndpoint = process.env.RENDER_VIDEO_ENDPOINT;
-    if (!renderEndpoint) {
-      console.error("CRITICAL: RENDER_VIDEO_ENDPOINT is not set. Cannot trigger video render.");
-      // In a "save and wait" context, this should be a hard error for the user.
-      throw new Error("Cannot trigger video render: endpoint not configured.");
-    }
-
-    // Combine data for the payload. The most up-to-date data is what we just intended to save.
-    const renderPayload = {
-      clip_id: clipId,
-      raw_clip_url: renderData.rawClipUrl,
-      transcript_segments: data.transcript,
-      hook: data.hook,
-      hook_style: data.hookStyle,
-      caption_style_preset: renderData.projectCaptionStyle,
-      captions_style: data.captionsStyle,
-    };
-
-    // --- TEMPORARY DEBUGGING: Save payload to a file ---
-    const fs = require('fs');
-    const path = require('path');
-    const filePath = path.join(process.cwd(), 'render_payload_log.txt');
-    fs.writeFileSync(filePath, JSON.stringify(renderPayload, null, 2));
-    console.log(`Render payload saved to ${filePath}`);
-    // --- END TEMPORARY DEBUGGING ---
-
-    /*
-    console.log("Sending payload to render endpoint:", JSON.stringify(renderPayload, null, 2));
-
-    const renderResponse = await fetch(renderEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(renderPayload),
-    });
-
-    if (!renderResponse.ok) {
-      const errorBody = await renderResponse.text();
-      console.error(`Backend render failed with status ${renderResponse.status}: ${errorBody}`);
-      throw new Error(`The video rendering service failed. Please try again later.`);
-    }
-
-    console.log("Backend render triggered successfully.");
-    */
     
     revalidatePath(`/projects/${clip.projectId}`);
 

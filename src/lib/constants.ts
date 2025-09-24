@@ -56,7 +56,6 @@ export const VIDEO_GENERATION = {
   DEFAULT_CAPTION_STYLE: 1,
   CAPTION_STYLES: {
     CLASSIC: 1,
-    EMOJI: 2,
     KARAOKE: 3,
   },
 } as const
@@ -76,12 +75,12 @@ export const CLIP_CONFIG = {
   
   // Default text styles
   DEFAULT_HOOK_STYLE: {
-    fontSize: 22, // A little smaller
+    fontSize: 100, // A little smaller
     position: { x: 50, y: 22 } // A little higher
   },
   
   DEFAULT_CAPTIONS_STYLE: {
-    fontSize: 23, // One size bigger
+    fontSize: 100, // One size bigger
     position: { x: 50, y: 70 } // Moved down a little
   },
   
@@ -94,7 +93,7 @@ export const CLIP_CONFIG = {
   // Font size constraints  
   FONT_SIZE_BOUNDS: {
     MIN: 12,
-    MAX: 80 // Reasonable max for the corrected smaller font sizes
+    MAX: 220 // Allow larger text scaling for on-canvas editing
   }
 } as const;
 
@@ -109,16 +108,17 @@ export function getClipVideoUrl(clip: { rawClipUrl?: string | null; s3Key?: stri
 }
 
 // Helper function to check if clip is editable
-export function isClipEditable(clip: { 
-  transcript?: any; 
-  rawClipUrl?: string | null; 
-  s3Key?: string | null; 
+export function isClipEditable(clip: {
+  transcript?: unknown;
+  rawClipUrl?: string | null;
+  s3Key?: string | null;
 }): boolean {
+  const { transcript, rawClipUrl, s3Key } = clip;
+
   return !!(
-    clip.transcript &&
-    Array.isArray(clip.transcript) &&
-    clip.transcript.length > 0 &&
-    (clip.rawClipUrl || clip.s3Key)
+    Array.isArray(transcript) &&
+    transcript.length > 0 &&
+    (rawClipUrl || s3Key)
   );
 }
 

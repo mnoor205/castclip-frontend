@@ -7,8 +7,7 @@ import {
 } from "@/stores/clip-editor-store";
 import { VideoPreview } from "./video-preview";
 import { TranscriptEditor } from './transcript-editor';
-import { Button } from '@/components/ui/button';
-import { Paintbrush } from 'lucide-react';
+import { CaptionStyleSelector } from './caption-style-selector';
 
 interface ClipEditorProps {
   videoUrl: string;
@@ -16,7 +15,7 @@ interface ClipEditorProps {
   initialHook?: string;
   captionsStyle?: Record<string, any> | null;
   hookStyle?: Record<string, any> | null;
-  projectStyle?: number | null;
+  projectStyle: number | null;
   className?: string;
 }
 
@@ -29,16 +28,14 @@ export function ClipEditor({
   projectStyle,
   className = "",
 }: ClipEditorProps) {
-  const {
-    setTranscript,
-    setHook,
-    isEditMode,
-    setEditMode,
-    initializeOriginalState,
-    initializeStyles,
-    resetState,
-    setProjectStylePreference,
-  } = useClipEditorStore();
+  // Select state and actions individually to prevent re-render loops
+  const setTranscript = useClipEditorStore((state) => state.setTranscript);
+  const setHook = useClipEditorStore((state) => state.setHook);
+  const initializeOriginalState = useClipEditorStore((state) => state.initializeOriginalState);
+  const initializeStyles = useClipEditorStore((state) => state.initializeStyles);
+  const resetState = useClipEditorStore((state) => state.resetState);
+  const setCaptionStyleId = useClipEditorStore((state) => state.setCaptionStyleId);
+  const captionStyleId = useClipEditorStore((state) => state.captionStyleId);
 
   // Initialize editor with clip data
   useEffect(() => {
@@ -63,7 +60,7 @@ export function ClipEditor({
       setTranscript(transcriptWithIds);
       setHook(initialHook);
       if (typeof projectStyle === 'number') {
-        setProjectStylePreference(projectStyle);
+        setCaptionStyleId(projectStyle);
       }
       
       // Initialize original state for change tracking AFTER styles are set
@@ -90,27 +87,21 @@ export function ClipEditor({
     initializeOriginalState, 
     initializeStyles,
     resetState, 
-    setProjectStylePreference
+    setCaptionStyleId
   ]);
 
   return (
     <div className={`grid lg:grid-cols-2 gap-6 lg:gap-8 items-start ${className}`}>
-      <div className="w-full lg:sticky lg:top-24 flex flex-col gap-4">
-        <VideoPreview
-          videoUrl={videoUrl}
-          className="w-full max-w-[350px] mx-auto"
-        />
-        <Button
-          onClick={() => setEditMode(!isEditMode)}
-          variant={isEditMode ? "default" : "outline"}
-          size="sm"
-          className="w-full max-w-[350px] mx-auto gap-2"
-        >
-          <Paintbrush className="h-4 w-4" />
-          {isEditMode ? "Exit Text Edit Mode" : "Edit Text on Video"}
-        </Button>
+      <div className="w-full lg:sticky lg:top-24 flex flex-col gap-4 max-w-[370px] mx-auto">
+        <VideoPreview videoUrl={videoUrl} transcript={initialTranscript}/>
       </div>
-      <TranscriptEditor className="w-full" />
+      <div className="flex flex-col gap-8">
+        <TranscriptEditor />
+        <CaptionStyleSelector
+          selectedStyleId={captionStyleId}
+          onStyleChange={setCaptionStyleId}
+        />
+      </div>
     </div>
   );
 }

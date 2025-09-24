@@ -83,3 +83,19 @@ export interface VideoSelectorData {
   videos: Video[]
   nextPageToken: string | null
 }
+
+// video-preview
+export type VideoMetadata = {
+  durationInSeconds: number | null;
+  dimensions: {
+    width: number;
+    height: number;
+  } | null;
+  fps: number | null;
+};
+
+export type TranscriptWord = {
+  word: string;
+  start: number;
+  end: number;
+};
