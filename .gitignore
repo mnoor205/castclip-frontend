@@ -40,7 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-render_payload*.txt
+*.txt
 /src/app/guide/
 /src/actions/dev.ts
 
