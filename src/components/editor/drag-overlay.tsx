@@ -70,13 +70,12 @@ const EditableBox: React.FC<EditableBoxProps> = ({
     pointerEvents: "auto",
     touchAction: "none",
     display: "block",
-    backgroundColor: "rgba(56, 189, 248, 0.12)",
     boxSizing: "border-box",
   };
 
   const borderStyles = isSelected
-    ? "border-sky-400 shadow-[0_0_0_1px_rgba(56,189,248,0.9)]"
-    : "border-sky-300/70 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]";
+    ? "border-sky-400 shadow-[0_0_0_1px_rgba(56,189,248,0.9)] bg-sky-500/20"
+    : "border-transparent";
 
   return (
     <div
@@ -88,22 +87,26 @@ const EditableBox: React.FC<EditableBoxProps> = ({
       <div className={`absolute inset-0 rounded-xl border ${borderStyles} pointer-events-none`} />
 
       {/* Resize handles */}
-      <div
-        className="absolute -top-3 -left-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nwse-resize"
-        onPointerDown={handleResizePointerDown("top-left")}
-      />
-      <div
-        className="absolute -top-3 -right-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nesw-resize"
-        onPointerDown={handleResizePointerDown("top-right")}
-      />
-      <div
-        className="absolute -bottom-3 -left-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nesw-resize"
-        onPointerDown={handleResizePointerDown("bottom-left")}
-      />
-      <div
-        className="absolute -bottom-3 -right-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nwse-resize"
-        onPointerDown={handleResizePointerDown("bottom-right")}
-      />
+      {isSelected && (
+        <>
+          <div
+            className="absolute -top-3 -left-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nwse-resize"
+            onPointerDown={handleResizePointerDown("top-left")}
+          />
+          <div
+            className="absolute -top-3 -right-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nesw-resize"
+            onPointerDown={handleResizePointerDown("top-right")}
+          />
+          <div
+            className="absolute -bottom-3 -left-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nesw-resize"
+            onPointerDown={handleResizePointerDown("bottom-left")}
+          />
+          <div
+            className="absolute -bottom-3 -right-3 h-4 w-4 rounded-full border border-white/60 bg-sky-500/90 cursor-nwse-resize"
+            onPointerDown={handleResizePointerDown("bottom-right")}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SingleClipEditor } from "@/components/editor/single-clip-editor";
 import { isClipEditable } from "@/lib/constants";
+import type { TextStyle } from "@/stores/clip-editor-store";
 
 interface EditClipPageProps {
   params: Promise<{
@@ -65,8 +66,8 @@ async function EditClipPageContent({ projectId, clipId }: { projectId: string, c
       <SingleClipEditor 
         clip={clip}
         projectId={projectId}
-        captionsStyle={clip.captionsStyle as Record<string, any> | null}
-        hookStyle={clip.hookStyle as Record<string, any> | null}
+        captionsStyle={clip.captionsStyle as TextStyle | null}
+        hookStyle={clip.hookStyle as TextStyle | null}
         projectStyle={project.captionStyle}
       />
     </div>

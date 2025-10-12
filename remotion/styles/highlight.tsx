@@ -8,7 +8,11 @@ interface Props {
 export const HighlightStyle: React.FC<Props> = ({ activeWords, currentTime }) => {
   return (
     <p
-      style={{ fontFamily: "Anton", margin: 0 }}
+      style={{
+        fontFamily: "Impact",
+        margin: 0,
+        textShadow: "2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000, 1px 1px #000, -1px -1px #000, 1px -1px #000, -1px 1px #000",
+      }}
       className="text-center"
     >
       <span

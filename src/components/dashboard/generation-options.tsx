@@ -27,11 +27,13 @@ export default function GenerationOptions({
       {/* Caption style grid */}
       <div>
         <h3 className="text-lg font-medium mb-3">Choose Your Caption Style</h3>
-        <CaptionStyleSelector
-          className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4"
-          selectedStyleId={captionStyle}
-          onStyleChange={onCaptionStyleChange}
-        />
+        <div className="flex justify-center">
+          <CaptionStyleSelector
+            className="max-w-4xl"
+            selectedStyleId={captionStyle}
+            onStyleChange={onCaptionStyleChange}
+          />
+        </div>
       </div>
 
       {/* Controls */}

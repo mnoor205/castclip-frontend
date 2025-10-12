@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prismaDB } from "@/lib/prisma";
 import { z } from "zod";
 import { getUserData } from "./user";
+import { inngest } from "@/inngest/client";
+import type { TextStyle } from "@/stores/clip-editor-store";
 
 // Define Zod schema for validation
 const clipUpdateSchema = z.object({
@@ -16,11 +18,26 @@ const clipUpdateSchema = z.object({
   hook: z.string().optional(),
   hookStyle: z.record(z.string(), z.any()).optional(),
   captionsStyle: z.record(z.string(), z.any()).optional(),
+  captionStyleId: z.number().optional(),
 });
 
 type ClipUpdateData = z.infer<typeof clipUpdateSchema>;
 
-export async function updateClip(data: ClipUpdateData, renderData: { projectCaptionStyle: number, rawClipUrl: string }) {
+interface RenderData {
+  projectCaptionStyle: number;
+  rawClipUrl: string;
+  transcript: {
+    word: string;
+    start: number;
+    end: number;
+  }[];
+  hook?: string | null;
+  hookStyle?: TextStyle | null;
+  captionsStyle?: TextStyle | null;
+  captionStyleId?: number | null;
+}
+
+export async function updateClip(data: ClipUpdateData, renderData: RenderData) {
   const user = await getUserData()
   if (!user?.id) {
       return { success: false, error: "Authentication required" };
@@ -53,16 +70,44 @@ export async function updateClip(data: ClipUpdateData, renderData: { projectCapt
       return { success: false, error: "Unauthorized" };
     }
 
-    await prismaDB.clip.update({
+    const { captionStyleId, ...clipUpdateData } = updateData;
+
+    const updatedClip = await prismaDB.clip.update({
       where: { id: clipId },
       data: {
-        ...(updateData.transcript && { transcript: updateData.transcript }),
-        ...(updateData.hook && { hook: updateData.hook }),
-        ...(updateData.hookStyle && { hookStyle: updateData.hookStyle }),
-        ...(updateData.captionsStyle && { captionsStyle: updateData.captionsStyle }),
+        ...(clipUpdateData.transcript && { transcript: clipUpdateData.transcript }),
+        ...(clipUpdateData.hook && { hook: clipUpdateData.hook }),
+        ...(clipUpdateData.hookStyle && { hookStyle: clipUpdateData.hookStyle }),
+        ...(clipUpdateData.captionsStyle && { captionsStyle: clipUpdateData.captionsStyle }),
       },
     });
     
+    // If captionStyleId is provided, update the project
+    if (captionStyleId !== undefined && captionStyleId !== null) {
+      await prismaDB.project.update({
+        where: { id: clip.projectId },
+        data: {
+          captionStyle: captionStyleId,
+        },
+      });
+    }
+
+    // After successfully updating, trigger the video generation
+    await inngest.send({
+      name: "video/generate",
+      data: {
+        clipId: updatedClip.id,
+        userId: user.id,
+        projectId: clip.projectId,
+        rawClipUrl: renderData.rawClipUrl,
+        transcript: renderData.transcript,
+        hook: renderData.hook,
+        hookStyle: renderData.hookStyle,
+        captionsStyle: renderData.captionsStyle,
+        captionStyleId: renderData.captionStyleId,
+      },
+    });
+
     revalidatePath(`/projects/${clip.projectId}`);
 
     return { success: true };
@@ -74,5 +119,38 @@ export async function updateClip(data: ClipUpdateData, renderData: { projectCapt
         return { success: false, error: error.message };
     }
     return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function checkClipStatus(clipId: string) {
+  try {
+    const user = await getUserData();
+    if (!user?.id) {
+      return { success: false, error: "Authentication required", isRendered: false };
+    }
+
+    const clip = await prismaDB.clip.findUnique({
+      where: { id: clipId },
+      select: { 
+        renderedClipUrl: true,
+        userId: true,
+      },
+    });
+
+    if (!clip) {
+      return { success: false, error: "Clip not found", isRendered: false };
+    }
+
+    if (clip.userId !== user.id) {
+      return { success: false, error: "Unauthorized", isRendered: false };
+    }
+
+    // Check if the clip has been rendered (renderedClipUrl is populated)
+    const isRendered = !!clip.renderedClipUrl;
+
+    return { success: true, isRendered, renderedClipUrl: clip.renderedClipUrl };
+  } catch (error) {
+    console.error("Error checking clip status:", error);
+    return { success: false, error: "Failed to check clip status", isRendered: false };
   }
 }

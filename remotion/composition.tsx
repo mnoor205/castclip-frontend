@@ -47,7 +47,9 @@ const HookLayer: React.FC<{ text: string; style: TextStyle }> = ({ text, style }
         top: `${style.position.y}%`,
         transform: "translate(-50%, -50%)",
         fontSize: `${style.fontSize}px`,
-        fontFamily: "Anton",
+        fontFamily: "Impact",
+        textTransform: "uppercase",
+        textShadow: "3px 0 #000, -3px 0 #000, 0 3px #000, 0 -3px #000, 2px 2px #000, -2px -2px #000, 2px -2px #000, -2px 2px #000",
         width: `${width * ((CLIP_CONFIG.POSITION_BOUNDS.MAX - CLIP_CONFIG.POSITION_BOUNDS.MIN) / 100)}px`,
       }}
     >

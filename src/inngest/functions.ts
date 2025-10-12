@@ -3,6 +3,48 @@ import { inngest } from "./client";
 import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import { sendMail } from "@/lib/send-mail";
 
+const GENERATE_VIDEO_EVENT = "video/generate";
+
+// Payload type is inferred from producers; explicit interface removed to avoid unused symbol.
+
+export const generateVideo = inngest.createFunction(
+  {
+    id: "generate-video",
+    retries: 3,
+    concurrency: {
+      limit: 1, // Only one generation job per clip at a time.
+      key: "event.data.clipId",
+    },
+  },
+  { event: GENERATE_VIDEO_EVENT },
+  async ({ event, step }) => {
+    await step.run("send-generation-request", async () => {
+      const response = await fetch("https://generate-videos-320842415829.us-south1.run.app/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(event.data),
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        const errorMessage = `Video generation service failed: ${response.status} ${response.statusText}. Response: ${responseText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // We might want to handle the response here in the future
+      // For example, to get a render ID and store it.
+      const responseData = await response.json();
+      console.log("Generation request successful:", responseData);
+    });
+
+    return { status: "completed", clipId: event.data.clipId };
+  }
+);
+
+
 const PROCESSING_TIMEOUT = "45m"; // Generous timeout for a 30-min job
 
 // 1. The Initiator: Starts the process and sets up a safety net.

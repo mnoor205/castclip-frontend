@@ -77,20 +77,20 @@ export function TranscriptEditor({ className = "" }: TranscriptEditorProps) {
     }
   }, [deleteWord]);
   
-  // Clear all selections
-  const clearSelections = useCallback(() => {
-    setSelectedWordIndex(null);
-    setEditingWordIndex(null);
-    setInsertingAtIndex(null);
-  }, []);
+  // Clear all selections (keep for potential future use)
+  // const clearSelections = useCallback(() => {
+  //   setSelectedWordIndex(null);
+  //   setEditingWordIndex(null);
+  //   setInsertingAtIndex(null);
+  // }, []);
 
   // Check if word is currently active (being spoken)
-  const isWordActive = useCallback((word: any) => {
+  const isWordActive = useCallback((word: { start: number; end: number }) => {
     return currentTime >= word.start && currentTime <= word.end;
   }, [currentTime]);
 
   // Get word styling based on state
-  const getWordStyling = useCallback((word: any, index: number) => {
+  const getWordStyling = useCallback((word: { start: number; end: number }, index: number) => {
     const isActive = isWordActive(word);
     const isSelected = selectedWordIndex === index;
     

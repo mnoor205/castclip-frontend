@@ -9,7 +9,12 @@ interface Props {
 export const KaraokeStyle: React.FC<Props> = ({ activeWords, currentTime }) => {
   return (
     <p
-      style={{ fontFamily: "Impact", margin: 0 }}
+      style={{
+        fontFamily: "Impact",
+        margin: 0,
+        textTransform: "uppercase",
+        textShadow: "2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000, 1px 1px #000, -1px -1px #000, 1px -1px #000, -1px 1px #000",
+      }}
       className="text-center"
     >
       <span
@@ -25,9 +30,9 @@ export const KaraokeStyle: React.FC<Props> = ({ activeWords, currentTime }) => {
           );
 
           return (
-            <span key={i} className="relative inline-block mr-2">
+            <span key={i} className="relative inline-block mr-3">
               {/* Base gray word in normal flow */}
-              <span className="text-gray-200">{word.word}</span>
+              <span className="text-neutral-100">{word.word}</span>
 
               {/* Orange overlay clipped */}
               <span

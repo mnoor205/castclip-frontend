@@ -2,6 +2,7 @@ import { inngest } from "@/inngest/client";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prismaDB } from "@/lib/prisma";
+import type { TranscriptWord } from "@/lib/types";
 
 interface ModalWebhookPayload {
   user_id: string;
@@ -9,7 +10,7 @@ interface ModalWebhookPayload {
   status: "completed" | "failed" | "ready_for_review"; // Add new status
   clips?: {
     raw_clip_url: string;
-    transcript_segments: any; // Keeping this flexible
+    transcript_segments: TranscriptWord[];
     hook: string;
     start: number;
     end: number;

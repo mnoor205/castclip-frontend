@@ -76,7 +76,7 @@ export const CLIP_CONFIG = {
   // Default text styles
   DEFAULT_HOOK_STYLE: {
     fontSize: 100, // A little smaller
-    position: { x: 50, y: 22 } // A little higher
+    position: { x: 50, y: 15 } // A little higher
   },
   
   DEFAULT_CAPTIONS_STYLE: {

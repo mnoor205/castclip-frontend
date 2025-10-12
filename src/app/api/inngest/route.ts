@@ -5,10 +5,11 @@ import {
   sendNotificationEmail,
   handleVideoProcessed,
   handleVideoProcessingFailure,
-  checkProcessingTimeout
+  checkProcessingTimeout,
+  generateVideo
 } from "@/inngest/functions";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [processVideo, sendNotificationEmail, handleVideoProcessed, handleVideoProcessingFailure, checkProcessingTimeout],
+  functions: [processVideo, sendNotificationEmail, handleVideoProcessed, handleVideoProcessingFailure, checkProcessingTimeout, generateVideo],
 });

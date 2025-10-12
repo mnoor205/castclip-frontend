@@ -4,9 +4,6 @@ import { redirect } from "next/navigation";
 import { ClipDisplay } from "@/components/projects/clip-display";
 import BackButton from "@/components/navigation/back-button";
 import DeleteProjectButton from "@/components/projects/delete-project-button";
-import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
-import Link from "next/link";
 
 interface PageProps {
   params: Promise<{

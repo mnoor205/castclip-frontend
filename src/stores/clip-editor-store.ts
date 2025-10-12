@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { CLIP_CONFIG } from '@/lib/constants';
-import { VIDEO_GENERATION } from '@/lib/constants';
+import { CLIP_CONFIG, VIDEO_GENERATION } from '@/lib/constants';
 
 export interface TranscriptWord {
   word: string;
@@ -50,7 +49,7 @@ export interface EditorState {
   dragState: DragState;
 
   // Caption style preference from project settings
-  captionStyleId: number | null;
+  captionStyleId: number;
   
   // Original state for change tracking
   originalState: {
@@ -58,6 +57,7 @@ export interface EditorState {
     hook: string;
     hookStyle: TextStyle;
     captionsStyle: TextStyle;
+    captionStyleId: number;
   } | null;
 }
 
@@ -99,13 +99,13 @@ export interface EditorActions {
   resetTextStyles: () => void;
   
   // Change tracking actions
-  initializeOriginalState: (transcript: TranscriptWord[], hook: string, hookStyle: TextStyle, captionsStyle: TextStyle) => void;
+  initializeOriginalState: (transcript: TranscriptWord[], hook: string, hookStyle: TextStyle, captionsStyle: TextStyle, captionStyleId: number) => void;
   initializeStyles: (hookStyle: TextStyle | null, captionsStyle: TextStyle | null, projectStyle: number | null) => void;
   hasChanges: () => boolean;
-  getChanges: () => Partial<{ transcript: TranscriptWord[]; hook: string; hookStyle: TextStyle; captionsStyle: TextStyle; }>;
+  getChanges: () => Partial<{ transcript: TranscriptWord[]; hook: string; hookStyle: TextStyle; captionsStyle: TextStyle; captionStyleId: number }>;
   markAsSaved: () => void;
   resetState: () => void;
-  _deepEqual: (a: any, b: any) => boolean;
+  _deepEqual: (a: unknown, b: unknown) => boolean;
   
   // Computed getters
   getActiveWords: () => TranscriptWord[];
@@ -133,7 +133,7 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
     resizeHandle: null,
     initialResizeData: null
   },
-  captionStyleId: null,
+  captionStyleId: VIDEO_GENERATION.DEFAULT_CAPTION_STYLE,
   originalState: null,
 
   // Actions
@@ -384,20 +384,20 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
   },
   
   // Helper function for deep equality (used by change tracking)
-  _deepEqual: (a: any, b: any): boolean => {
-    const deepEqual = (x: any, y: any): boolean => {
+  _deepEqual: (a: unknown, b: unknown): boolean => {
+    const deepEqual = (x: unknown, y: unknown): boolean => {
       if (x === y) return true;
       if (x == null || y == null) return false;
       if (typeof x !== 'object' || typeof y !== 'object') return false;
       
-      const keysX = Object.keys(x);
-      const keysY = Object.keys(y);
+      const keysX = Object.keys(x as Record<string, unknown>);
+      const keysY = Object.keys(y as Record<string, unknown>);
       
       if (keysX.length !== keysY.length) return false;
       
-      for (let key of keysX) {
+      for (const key of keysX) {
         if (!keysY.includes(key)) return false;
-        if (!deepEqual(x[key], y[key])) return false;
+        if (!deepEqual((x as Record<string, unknown>)[key], (y as Record<string, unknown>)[key])) return false;
       }
       
       return true;
@@ -407,13 +407,14 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
   },
   
   // Change tracking functions
-  initializeOriginalState: (transcript: TranscriptWord[], hook: string, hookStyle: TextStyle, captionsStyle: TextStyle) => {
+  initializeOriginalState: (transcript: TranscriptWord[], hook: string, hookStyle: TextStyle, captionsStyle: TextStyle, captionStyleId: number) => {
     set({
       originalState: {
         transcript: JSON.parse(JSON.stringify(transcript)), // Deep copy
         hook,
         hookStyle: JSON.parse(JSON.stringify(hookStyle)),
-        captionsStyle: JSON.parse(JSON.stringify(captionsStyle))
+        captionsStyle: JSON.parse(JSON.stringify(captionsStyle)),
+        captionStyleId,
       }
     });
   },
@@ -427,8 +428,8 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
     let finalCaptionsStyle: TextStyle = { ...CLIP_CONFIG.DEFAULT_CAPTIONS_STYLE };
     if (captionsStyle) {
       finalCaptionsStyle = captionsStyle;
-    } else if (projectStyle && (VIDEO_GENERATION.CAPTION_STYLES as Record<number, any>)[projectStyle]) {
-      finalCaptionsStyle = { ...(VIDEO_GENERATION.CAPTION_STYLES as Record<number, any>)[projectStyle] };
+    } else if (projectStyle && (VIDEO_GENERATION.CAPTION_STYLES as Record<number, TextStyle>)[projectStyle]) {
+      finalCaptionsStyle = { ...(VIDEO_GENERATION.CAPTION_STYLES as Record<number, TextStyle>)[projectStyle] };
     }
     
     set({
@@ -438,20 +439,21 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
   },
   
   hasChanges: () => {
-    const { originalState, transcript, hook, hookStyle, captionsStyle, _deepEqual } = get();
+    const { originalState, transcript, hook, hookStyle, captionsStyle, captionStyleId, _deepEqual } = get();
     if (!originalState) return false;
     
     return !_deepEqual(transcript, originalState.transcript) ||
            hook !== originalState.hook ||
            !_deepEqual(hookStyle, originalState.hookStyle) ||
-           !_deepEqual(captionsStyle, originalState.captionsStyle);
+           !_deepEqual(captionsStyle, originalState.captionsStyle) ||
+           captionStyleId !== originalState.captionStyleId;
   },
   
   getChanges: () => {
-    const { originalState, transcript, hook, hookStyle, captionsStyle, _deepEqual } = get();
+    const { originalState, transcript, hook, hookStyle, captionsStyle, captionStyleId, _deepEqual } = get();
     if (!originalState) return {};
     
-    const changes: Partial<{ transcript: TranscriptWord[]; hook: string; hookStyle: TextStyle; captionsStyle: TextStyle; }> = {};
+    const changes: Partial<{ transcript: TranscriptWord[]; hook: string; hookStyle: TextStyle; captionsStyle: TextStyle; captionStyleId: number }> = {};
     
     if (!_deepEqual(transcript, originalState.transcript)) {
       changes.transcript = transcript;
@@ -469,17 +471,22 @@ export const useClipEditorStore = create<EditorStore>((set, get) => ({
       changes.captionsStyle = captionsStyle;
     }
     
+    if (captionStyleId !== originalState.captionStyleId) {
+      changes.captionStyleId = captionStyleId;
+    }
+    
     return changes;
   },
   
   markAsSaved: () => {
-    const { transcript, hook, hookStyle, captionsStyle } = get();
+    const { transcript, hook, hookStyle, captionsStyle, captionStyleId } = get();
     set({
       originalState: {
         transcript: JSON.parse(JSON.stringify(transcript)), // Deep copy
         hook,
         hookStyle: JSON.parse(JSON.stringify(hookStyle)), // Deep copy for consistency
-        captionsStyle: JSON.parse(JSON.stringify(captionsStyle)) // Deep copy for consistency
+        captionsStyle: JSON.parse(JSON.stringify(captionsStyle)), // Deep copy for consistency
+        captionStyleId,
       }
     });
   },
