@@ -25,7 +25,7 @@ type ClipUpdateData = z.infer<typeof clipUpdateSchema>;
 
 interface RenderData {
   projectCaptionStyle: number;
-  rawClipUrl: string;
+  s3Key: string;
   transcript: {
     word: string;
     start: number;
@@ -79,6 +79,7 @@ export async function updateClip(data: ClipUpdateData, renderData: RenderData) {
         ...(clipUpdateData.hook && { hook: clipUpdateData.hook }),
         ...(clipUpdateData.hookStyle && { hookStyle: clipUpdateData.hookStyle }),
         ...(clipUpdateData.captionsStyle && { captionsStyle: clipUpdateData.captionsStyle }),
+        status: "processing", // Mark as processing while video is being generated
       },
     });
     
@@ -99,7 +100,7 @@ export async function updateClip(data: ClipUpdateData, renderData: RenderData) {
         clipId: updatedClip.id,
         userId: user.id,
         projectId: clip.projectId,
-        rawClipUrl: renderData.rawClipUrl,
+        s3Key: renderData.s3Key,
         transcript: renderData.transcript,
         hook: renderData.hook,
         hookStyle: renderData.hookStyle,
@@ -132,7 +133,8 @@ export async function checkClipStatus(clipId: string) {
     const clip = await prismaDB.clip.findUnique({
       where: { id: clipId },
       select: { 
-        renderedClipUrl: true,
+        status: true,
+        s3Key: true,
         userId: true,
       },
     });
@@ -145,10 +147,10 @@ export async function checkClipStatus(clipId: string) {
       return { success: false, error: "Unauthorized", isRendered: false };
     }
 
-    // Check if the clip has been rendered (renderedClipUrl is populated)
-    const isRendered = !!clip.renderedClipUrl;
+    // Check if clip status is "rendered"
+    const isRendered = clip.status === "rendered";
 
-    return { success: true, isRendered, renderedClipUrl: clip.renderedClipUrl };
+    return { success: true, isRendered, renderedClipUrl: isRendered ? (clip.s3Key ?? null) : null };
   } catch (error) {
     console.error("Error checking clip status:", error);
     return { success: false, error: "Failed to check clip status", isRendered: false };

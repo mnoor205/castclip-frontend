@@ -98,8 +98,7 @@ export const CLIP_CONFIG = {
 } as const;
 
 // Helper function to get video URL with consistent logic
-export function getClipVideoUrl(clip: { rawClipUrl?: string | null; s3Key?: string | null }): string | null {
-  if (clip.rawClipUrl) return clip.rawClipUrl;
+export function getClipVideoUrl(clip: { s3Key?: string | null }): string | null {
   if (!clip.s3Key) return null;
   
   return clip.s3Key.startsWith('http') 
@@ -110,15 +109,14 @@ export function getClipVideoUrl(clip: { rawClipUrl?: string | null; s3Key?: stri
 // Helper function to check if clip is editable
 export function isClipEditable(clip: {
   transcript?: unknown;
-  rawClipUrl?: string | null;
   s3Key?: string | null;
 }): boolean {
-  const { transcript, rawClipUrl, s3Key } = clip;
+  const { transcript, s3Key } = clip;
 
   return !!(
     Array.isArray(transcript) &&
     transcript.length > 0 &&
-    (rawClipUrl || s3Key)
+    s3Key
   );
 }
 

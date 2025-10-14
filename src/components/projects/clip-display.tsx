@@ -16,10 +16,7 @@ import {
 import { deleteClip } from "@/actions/delete";
 import { toast } from "sonner";
 import { getClipVideoUrl, isClipEditable } from "@/lib/constants";
-import { VideoPreview } from "@/components/editor/video-preview";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
-import type { TranscriptWord } from "@/lib/types";
-import type { TextStyle } from "@/stores/clip-editor-store";
 
 interface Clip extends PrismaClip {
   youtubeUrl?: string;
@@ -66,42 +63,22 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
     });
   };
 
-  const renderedUrl = clip.renderedClipUrl ?? null;
-  const videoUrl = renderedUrl || getClipVideoUrl(clip);
+  const videoUrl = getClipVideoUrl(clip);
   const isEditable = !readOnly && isClipEditable(clip);
 
   return (
     <div ref={cardRef} className="flex w-full flex-col gap-2">
       <div className="relative w-full rounded-md overflow-hidden bg-muted aspect-[9/16]">
         {isVisible && videoUrl ? (
-          renderedUrl ? (
-            <video
-              src={renderedUrl}
-              controls
-              playsInline
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <VideoPreview
-              videoUrl={videoUrl}
-              displayOnly={true}
-              clip={{
-                transcript: (clip.transcript as TranscriptWord[] | undefined) ?? undefined,
-                hook: (clip.hook as string | undefined) ?? undefined,
-                hookStyle: (clip.hookStyle as TextStyle | null | undefined) ?? undefined,
-                captionsStyle: (clip.captionsStyle as TextStyle | null | undefined) ?? undefined,
-                captionStylePreference: clip.project?.captionStyle ?? 1,
-              }}
-              className="w-full h-full"
-            />
-          )
+          <video
+            src={videoUrl}
+            controls
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         ) : (
           <div className="absolute inset-0 w-full h-full bg-gray-200 flex items-center justify-center">
-            {videoUrl ? (
-              <span className="text-gray-500">Loading video...</span>
-            ) : (
-              <span className="text-gray-500">Video not available</span>
-            )}
+            <span className="text-gray-500">{videoUrl ? "Loading video..." : "Rendering in progress"}</span>
           </div>
         )}
       </div>
@@ -120,12 +97,19 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
             </Button>
           </Link>
         ) : (
-          <Link href={(renderedUrl || getClipVideoUrl(clip) || '#')} className="flex-1">
-            <Button variant="outline" className="w-full text-xs sm:text-sm" size="sm">
-              <Download className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
-              Download
-            </Button>
-          </Link>
+          <Button variant="outline" className="flex-1 text-xs sm:text-sm" size="sm" disabled={!videoUrl} asChild={!!videoUrl}>
+            {videoUrl ? (
+              <Link href={videoUrl}>
+                <Download className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
+                Download
+              </Link>
+            ) : (
+              <span className="flex items-center justify-center w-full">
+                <Download className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
+                Download
+              </span>
+            )}
+          </Button>
         )}
         {isEditable && (
           <Link href={`/projects/${clip.projectId}/edit/${clip.id}`}>

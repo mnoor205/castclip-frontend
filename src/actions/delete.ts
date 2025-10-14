@@ -17,7 +17,9 @@ export async function deleteClip(clipId: string) {
 
     if (!clip) throw new Error("Clip not found")
 
-    await deleteFileFromS3(clip.s3Key)
+    if (clip.s3Key) {
+        await deleteFileFromS3(clip.s3Key)
+    }
     await prismaDB.clip.delete({ where: { id: clipId } })
 
     revalidatePath(`/projects/${clip.project?.id}`)

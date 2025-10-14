@@ -182,7 +182,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
 
       // Construct the payload for rendering (excluding clipId)
       const renderData = {
-        rawClipUrl: videoUrl,
+        s3Key: videoUrl,
         transcript: transcript.map(({ word, start, end }) => ({ word, start, end })),
         hook: hook,
         hookStyle: storeHookStyle,

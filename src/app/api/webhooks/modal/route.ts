@@ -5,16 +5,19 @@ import { prismaDB } from "@/lib/prisma";
 import type { TranscriptWord } from "@/lib/types";
 
 interface ModalWebhookPayload {
-  user_id: string;
-  project_id: string;
-  status: "completed" | "failed" | "ready_for_review"; // Add new status
+  userId: string;
+  projectId: string;
+  status: "completed" | "failed" ;
   clips?: {
-    raw_clip_url: string;
-    transcript_segments: TranscriptWord[];
+    s3Key: string; // Format: {userid}/{projectid}/clip_{i}.mp4
+    transcriptSegments: TranscriptWord[];
     hook: string;
     start: number;
     end: number;
   }[];
+  totalClips?: number;
+  clipIndex?: number;
+  isLastClip?: boolean;
   error?: {
     message: string;
     type: string;
@@ -39,7 +42,7 @@ export async function POST(req: Request) {
   // --- Process the valid request ---
   try {
     const payload: ModalWebhookPayload = await req.json();
-    const { user_id: userId, project_id: projectId, status, clips, error } = payload;
+    const { userId, projectId, status, clips, totalClips, clipIndex, isLastClip, error } = payload;
     
     console.log("Webhook received payload:", JSON.stringify(payload, null, 2));
 
@@ -48,125 +51,104 @@ export async function POST(req: Request) {
     }
 
     switch (status) {
-      case "ready_for_review":
+      case "completed":
         if (!clips || clips.length === 0) {
-          console.warn(`Webhook received 'ready_for_review' for project ${projectId} but no clips were provided.`);
-          // Optionally, handle this as a failure
-          await inngest.send({
-              name: "video-processing-failed-event",
-              data: {
-                  projectId,
-                  userId,
-                  reason: "Processing completed but no clips were generated.",
-              },
-          });
+          console.warn(`Webhook received 'completed' for project ${projectId} but no clips were provided.`);
           return NextResponse.json({ message: "Event received, no clips to process" }, { status: 202 });
         }
 
-        console.log(`Webhook received: Project ${projectId} is ready for review with ${clips.length} clips.`);
+        if (totalClips === undefined || clipIndex === undefined || isLastClip === undefined) {
+          throw new Error("Missing required fields: totalClips, clipIndex, or isLastClip");
+        }
 
-        // Use a transaction to ensure all or nothing is written to the DB
-        await prismaDB.$transaction(async (prisma) => {
-          // 1. Verify project exists and belongs to the user
-          const project = await prisma.project.findFirst({
-            where: { 
-              id: projectId,
-              userId: userId 
+        // Since clips come one at a time, we expect exactly 1 clip
+        const clip = clips[0];
+        
+        console.log(`Webhook received: Clip ${clipIndex + 1}/${totalClips} for project ${projectId}`);
+
+        // Verify project exists and belongs to the user
+        const project = await prismaDB.project.findFirst({
+          where: { 
+            id: projectId,
+            userId: userId 
+          },
+          select: {
+            id: true,
+            user: {
+              select: {
+                email: true,
+                name: true,
+              }
             }
-          });
-          
-          if (!project) {
-            throw new Error(`Project ${projectId} not found or doesn't belong to user ${userId}`);
           }
+        });
+        
+        if (!project) {
+          throw new Error(`Project ${projectId} not found or doesn't belong to user ${userId}`);
+        }
 
-          // 2. Check if clips already exist for this project (duplicate prevention)
-          const existingClips = await prisma.clip.findMany({
-            where: { projectId: projectId },
-            select: { id: true, rawClipUrl: true, s3Key: true }
-          });
+        // Validate clip data
+        if (!clip.s3Key) {
+          throw new Error(`Clip ${clipIndex} missing s3Key`);
+        }
+        if (typeof clip.start !== 'number' || typeof clip.end !== 'number') {
+          throw new Error(`Clip ${clipIndex} has invalid start/end times`);
+        }
+        if (clip.start >= clip.end) {
+          throw new Error(`Clip ${clipIndex} has invalid time range: start ${clip.start} >= end ${clip.end}`);
+        }
 
-          if (existingClips.length > 0) {
-            console.log(`Project ${projectId} already has ${existingClips.length} clips. Skipping duplicate creation.`);
-            // Update project status but don't create duplicate clips
-            await prisma.project.update({
-              where: { id: projectId },
-              data: { status: "processed" },
-            });
-            return; // Exit early - no need to create clips
-          }
+        // Create the clip in database
+        await prismaDB.clip.create({
+          data: {
+            s3Key: clip.s3Key,
+            transcript: clip.transcriptSegments,
+            hook: clip.hook || "",
+            start: clip.start,
+            end: clip.end,
+            projectId: projectId,
+            userId: userId,
+            status: "rendered" as const,
+          },
+        });
 
-          // 3. Additional check: prevent URL-based duplicates within the incoming clips
-          const incomingUrls = clips.map(clip => clip.raw_clip_url);
-          const urlDuplicates = incomingUrls.filter((url, index) => incomingUrls.indexOf(url) !== index);
-          if (urlDuplicates.length > 0) {
-            console.warn(`Duplicate URLs detected in incoming clips: ${urlDuplicates.join(', ')}`);
-          }
+        console.log(`✅ Clip ${clipIndex + 1}/${totalClips} saved successfully`);
 
-          // 4. Update the project status
-          await prisma.project.update({
+        // If this is the last clip, update project status and send email
+        if (isLastClip) {
+          await prismaDB.project.update({
             where: { id: projectId },
             data: { status: "processed" },
           });
 
-          // 5. Create all the new clips with validation
-          const clipData = clips.map((clip, index) => {
-            // Validate required fields
-            if (!clip.raw_clip_url) {
-              throw new Error(`Clip ${index} missing raw_clip_url`);
-            }
-            if (typeof clip.start !== 'number' || typeof clip.end !== 'number') {
-              throw new Error(`Clip ${index} has invalid start/end times`);
-            }
-            if (clip.start >= clip.end) {
-              throw new Error(`Clip ${index} has invalid time range: start ${clip.start} >= end ${clip.end}`);
-            }
-
-            // Derive s3Key from rawClipUrl for backward compatibility
-            let derivedS3Key: string | undefined = undefined;
-            try {
-              const u = new URL(clip.raw_clip_url);
-              derivedS3Key = u.pathname.replace(/^\//, "");
-            } catch (urlError) {
-              console.warn(`Failed to derive S3 key from URL ${clip.raw_clip_url}:`, urlError);
-            }
-
-            return {
-              rawClipUrl: clip.raw_clip_url,  // New field for new system
-              s3Key: derivedS3Key,           // Legacy field for existing clips compatibility
-              transcript: clip.transcript_segments,
-              hook: clip.hook || "",
-              start: clip.start,
-              end: clip.end,
-              projectId: projectId,
-              userId: userId,
-            };
+          // Send email notification
+          await inngest.send({
+            name: "send-notification-email",
+            data: {
+              email: project.user.email,
+              name: project.user.name,
+              clipsCount: totalClips,
+            },
           });
 
-          await prisma.clip.createMany({
-            data: clipData,
-          });
-        });
+          console.log(`🎉 All ${totalClips} clips completed for project ${projectId}. Email notification sent.`);
+        }
 
-        // Optionally, send a notification that the clips are ready
-        await inngest.send({
-          name: "video-processed-event", // Re-using existing event for success notification
-          data: { projectId, userId },
-        });
-
-        break;
-        
-      case "completed": // Keep old completed status for backward compatibility or other uses
-        await inngest.send({
-          name: "video-processed-event",
-          data: { projectId, userId },
-        });
-        console.log(`Webhook received: Project ${projectId} completed.`);
         break;
 
       case "failed":
         const failureReason = error?.message || "Processing failed on external service.";
         console.error(`Webhook received: Project ${projectId} failed. Reason: ${failureReason}`, payload);
         
+        // Update project status to failed
+        await prismaDB.project.update({
+          where: { id: projectId },
+          data: { 
+            status: "failed",
+            failureReason: failureReason,
+          },
+        });
+
         await inngest.send({
             name: "video-processing-failed-event",
             data: {
@@ -178,7 +160,6 @@ export async function POST(req: Request) {
         break;
 
       default:
-        // This can catch the old "completed" status or any other unexpected status
         console.warn(`Webhook received with unhandled status '${status}' for project ${projectId}.`);
         break;
     }

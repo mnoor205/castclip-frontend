@@ -32,11 +32,11 @@ export const KaraokeStyle: React.FC<Props> = ({ activeWords, currentTime }) => {
           return (
             <span key={i} className="relative inline-block mr-3">
               {/* Base gray word in normal flow */}
-              <span className="text-neutral-100">{word.word}</span>
+              <span className="text-orange-400">{word.word}</span>
 
               {/* Orange overlay clipped */}
               <span
-                className="absolute left-0 top-0 text-orange-400"
+                className="absolute left-0 top-0 text-neutral-100"
                 style={{
                   clipPath: `polygon(0 0, ${currentPosition}% 0, ${currentPosition}% 100%, 0 100%)`,
                 }}

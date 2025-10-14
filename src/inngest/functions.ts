@@ -115,7 +115,8 @@ export const processVideo = inngest.createFunction(
           method: "POST",
           body: JSON.stringify({
             s3_key: keyForProcessing,
-            ids: `${userId}/${projectId}`,
+            user_id: userId,
+            project_id: projectId,
             clip_count: affordableClipCount,
             style: captionStyle,
             webhook_url: webhookUrl,

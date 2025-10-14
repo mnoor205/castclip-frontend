@@ -7,7 +7,6 @@ const WEBHOOK_SECRET = process.env.VIDEO_GENERATION_WEBHOOK_SECRET;
 
 const webhookPayloadSchema = z.object({
   success: z.boolean(),
-  url: z.string().url(),
   clipId: z.string().uuid(),
 });
 
@@ -25,10 +24,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid payload", details: validation.error.format() }, { status: 400 });
     }
 
-    const { success, url, clipId } = validation.data;
+    const { success, clipId } = validation.data;
 
     if (!success) {
-      // The backend indicated failure, so we'll log it and do nothing further.
+      // The backend indicated failure, mark clip as failed
+      await prismaDB.clip.update({
+        where: { id: clipId },
+        data: { status: "failed" },
+      });
       console.log(`Received unsuccessful generation notification for clip ${clipId}`);
       return NextResponse.json({ success: true, message: "Acknowledged unsuccessful status." });
     }
@@ -48,7 +51,7 @@ export async function POST(req: Request) {
     await prismaDB.clip.update({
       where: { id: clipId },
       data: {
-        renderedClipUrl: url,
+        status: "rendered",
       },
     });
 

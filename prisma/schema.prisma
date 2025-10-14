@@ -98,8 +98,7 @@ model Project {
 model Clip {
   id              String   @id @default(uuid())
   s3Key           String?  // legacy key for backward compatibility with existing clips
-  rawClipUrl      String?  // new field for raw clips from backend
-  renderedClipUrl String?  // Will be null until the user exports the final video
+  status          ClipStatus @default(rendered)
   transcript      Json?    // Store the word-level transcript from the backend
   hook            String?  // The AI-generated hook
   captionsStyle   Json?
@@ -115,7 +114,6 @@ model Clip {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  @@index([rawClipUrl])
   @@index([s3Key])
 }
 
@@ -123,4 +121,10 @@ enum ProjectSource {
   UPLOADED_FILE
   YOUTUBE_CHANNEL
   VIDEO_URL
+}
+
+enum ClipStatus {
+  processing
+  rendered
+  failed
 }
