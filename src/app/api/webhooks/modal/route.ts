@@ -2,6 +2,7 @@ import { inngest } from "@/inngest/client";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prismaDB } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 import type { TranscriptWord } from "@/lib/types";
 
 interface ModalWebhookPayload {
@@ -9,9 +10,23 @@ interface ModalWebhookPayload {
   projectId: string;
   status: "completed" | "failed" ;
   clips?: {
-    s3Key: string; // Format: {userid}/{projectid}/clip_{i}.mp4
+    s3Key: string; 
     transcriptSegments: TranscriptWord[];
     hook: string;
+    hookStyle: {
+      fontSize: number,
+      position: {
+          x: number,
+          y: number
+      }
+    },
+    captionsStyle: {
+        fontSize: number,
+        position: {
+            x: number,
+            y: number
+        }
+    },
     start: number;
     end: number;
   }[];
@@ -98,21 +113,41 @@ export async function POST(req: Request) {
           throw new Error(`Clip ${clipIndex} has invalid time range: start ${clip.start} >= end ${clip.end}`);
         }
 
-        // Create the clip in database
-        await prismaDB.clip.create({
-          data: {
-            s3Key: clip.s3Key,
-            transcript: clip.transcriptSegments,
-            hook: clip.hook || "",
-            start: clip.start,
-            end: clip.end,
-            projectId: projectId,
-            userId: userId,
-            status: "rendered" as const,
-          },
+        // Atomic: create clip if not exists and deduct credits (idempotent)
+        await prismaDB.$transaction(async (tx) => {
+          const existing = await tx.clip.findFirst({
+            where: { projectId, s3Key: clip.s3Key },
+            select: { id: true },
+          });
+
+          if (!existing) {
+            await tx.clip.create({
+              data: {
+                s3Key: clip.s3Key,
+                transcript: clip.transcriptSegments,
+                hook: clip.hook || "",
+                hookStyle: clip.hookStyle,
+                captionsStyle: clip.captionsStyle,
+                start: clip.start,
+                end: clip.end,
+                projectId,
+                userId,
+                status: "rendered",
+              },
+            });
+
+            // Deduct credits but do not go below 0
+            const user = await tx.user.findUnique({ where: { id: userId }, select: { credits: true } });
+            const newCredits = Math.max(0, (user?.credits ?? 0) - 2);
+            await tx.user.update({ where: { id: userId }, data: { credits: newCredits } });
+          }
         });
 
         console.log(`✅ Clip ${clipIndex + 1}/${totalClips} saved successfully`);
+
+        // Revalidate dashboard and project page to reflect new clip
+        revalidatePath("/projects");
+        revalidatePath(`/projects/${projectId}`);
 
         // If this is the last clip, update project status and send email
         if (isLastClip) {

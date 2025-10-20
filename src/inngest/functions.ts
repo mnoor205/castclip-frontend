@@ -5,6 +5,8 @@ import { sendMail } from "@/lib/send-mail";
 
 const GENERATE_VIDEO_EVENT = "video/generate";
 
+
+const PROCESSING_TIMEOUT = "45m";
 // Payload type is inferred from producers; explicit interface removed to avoid unused symbol.
 
 export const generateVideo = inngest.createFunction(
@@ -18,8 +20,8 @@ export const generateVideo = inngest.createFunction(
   },
   { event: GENERATE_VIDEO_EVENT },
   async ({ event, step }) => {
-    await step.run("send-generation-request", async () => {
-      const response = await fetch("https://generate-videos-320842415829.us-south1.run.app/generate", {
+    const { status, responseData } = await step.run("send-generation-request", async () => {
+      const fetchResponse = await fetch("https://revoltai26--ai-podcast-clipper-style-web.modal.run/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -27,25 +29,38 @@ export const generateVideo = inngest.createFunction(
         body: JSON.stringify(event.data),
       });
 
-      if (!response.ok) {
-        const responseText = await response.text();
-        const errorMessage = `Video generation service failed: ${response.status} ${response.statusText}. Response: ${responseText}`;
+      if (!fetchResponse.ok) {
+        const responseText = await fetchResponse.text();
+        const errorMessage = `Video generation service failed: ${fetchResponse.status} ${fetchResponse.statusText}. Response: ${responseText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
       }
 
-      // We might want to handle the response here in the future
-      // For example, to get a render ID and store it.
-      const responseData = await response.json();
-      console.log("Generation request successful:", responseData);
+      let data: unknown = null;
+      if (fetchResponse.status !== 202) {
+        data = await fetchResponse.json();
+      }
+
+      return { status: fetchResponse.status, responseData: data };
     });
+
+    // If the response is 202 (accepted), sleep for processing time
+    if (status === 202) {
+      await step.sleep("wait-for-generation", PROCESSING_TIMEOUT); // Wait for generation to complete
+    }
+
+    // We might want to handle the response here in the future
+    // For example, to get a render ID and store it.
+    if (responseData) {
+      console.log("Generation request successful:", responseData);
+    }
 
     return { status: "completed", clipId: event.data.clipId };
   }
 );
 
 
-const PROCESSING_TIMEOUT = "45m"; // Generous timeout for a 30-min job
+ // Generous timeout for a 30-min job
 
 // 1. The Initiator: Starts the process and sets up a safety net.
 export const processVideo = inngest.createFunction(

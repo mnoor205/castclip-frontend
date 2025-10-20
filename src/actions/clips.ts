@@ -97,6 +97,7 @@ export async function updateClip(data: ClipUpdateData, renderData: RenderData) {
     await inngest.send({
       name: "video/generate",
       data: {
+        type: "edit",
         clipId: updatedClip.id,
         userId: user.id,
         projectId: clip.projectId,

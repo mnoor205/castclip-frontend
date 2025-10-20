@@ -6,6 +6,14 @@ interface Props {
 }
 
 export const HighlightStyle: React.FC<Props> = ({ activeWords, currentTime }) => {
+  let lastSpokenWord: TranscriptWord | undefined;
+  for (let i = activeWords.length - 1; i >= 0; i--) {
+    if (currentTime >= activeWords[i].start) {
+      lastSpokenWord = activeWords[i];
+      break;
+    }
+  }
+
   return (
     <p
       style={{
@@ -20,11 +28,11 @@ export const HighlightStyle: React.FC<Props> = ({ activeWords, currentTime }) =>
         data-measure-target
       >
         {activeWords.map((word) => {
-          const isSpoken = currentTime >= word.start && currentTime <= word.end;
+          const isHighlighted = word === lastSpokenWord;
           return (
             <span
               key={word.start}
-              className={isSpoken ? "text-red-500" : "text-white"}
+              className={isHighlighted ? "text-red-600" : "text-white"}
             >
               {word.word}{" "}
             </span>

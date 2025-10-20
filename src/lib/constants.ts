@@ -98,12 +98,18 @@ export const CLIP_CONFIG = {
 } as const;
 
 // Helper function to get video URL with consistent logic
-export function getClipVideoUrl(clip: { s3Key?: string | null }): string | null {
+export function getClipVideoUrl(clip: { s3Key?: string | null; updatedAt?: Date | null }): string | null {
   if (!clip.s3Key) return null;
-  
-  return clip.s3Key.startsWith('http') 
+
+  const baseUrl = clip.s3Key.startsWith('http') 
     ? clip.s3Key 
     : `${CLIP_CONFIG.R2_DOMAIN}/${clip.s3Key}`;
+
+  if (clip.updatedAt) {
+    return `${baseUrl}?v=${clip.updatedAt.getTime()}`;
+  }
+
+  return baseUrl;
 }
 
 // Helper function to check if clip is editable

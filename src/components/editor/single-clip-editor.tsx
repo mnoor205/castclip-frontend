@@ -175,14 +175,14 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
         captionStyleId: changes.captionStyleId,
       };
 
-      const videoUrl = getClipVideoUrl(clip);
-      if (!videoUrl) {
-        throw new Error("Video URL is not available, cannot trigger render.");
+      const s3Key = clip.s3Key;
+      if (!s3Key) {
+        throw new Error("s3Key not found, cannot trigger render.");
       }
 
       // Construct the payload for rendering (excluding clipId)
       const renderData = {
-        s3Key: videoUrl,
+        s3Key,
         transcript: transcript.map(({ word, start, end }) => ({ word, start, end })),
         hook: hook,
         hookStyle: storeHookStyle,
@@ -190,6 +190,11 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
         captionStyleId: captionStyleId,
         projectCaptionStyle: projectStyle ?? 1,
       };
+
+      const videoUrl = getClipVideoUrl(clip);
+      if (!videoUrl) {
+        throw new Error("Video URL is not available, cannot trigger render.");
+      }
 
       const result = await updateClip(finalChanges, renderData);
 
@@ -212,7 +217,8 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
     }
   };
   
-  const videoUrl = getClipVideoUrl(clip);
+  const rawS3Key = clip.s3Key ? clip.s3Key.replace(/\.mp4$/, '_raw.mp4') : null;
+  const videoUrl = rawS3Key ? getClipVideoUrl({ s3Key: rawS3Key }) : null;
   const initialTranscript = Array.isArray(clip.transcript) ? (clip.transcript as TranscriptWord[]) : [];
 
   // Safety check for video URL

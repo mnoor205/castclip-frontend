@@ -97,7 +97,7 @@ model Project {
 
 model Clip {
   id              String   @id @default(uuid())
-  s3Key           String?  // legacy key for backward compatibility with existing clips
+  s3Key           String?  
   status          ClipStatus @default(rendered)
   transcript      Json?    // Store the word-level transcript from the backend
   hook            String?  // The AI-generated hook
@@ -115,6 +115,7 @@ model Clip {
   userId String
 
   @@index([s3Key])
+  @@unique([projectId, s3Key])
 }
 
 enum ProjectSource {

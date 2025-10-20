@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bun next dev --turbopack",
     "inngest-dev": "npx inngest-cli@latest dev",
-    "build": "bun next build",
+    "build": "NODE_OPTIONS=--max_old_space_size=8192 bun next build",
     "start": "bun next start",
     "lint": "bun next lint"
   },

@@ -21,7 +21,7 @@ export default function Navbar({ user, leftSlot }: NavbarProps) {
         <Link href="/#demo" className="hover:text-primary transition-colors">Demo</Link>
         <Link href="/#pricing" className="hover:text-primary transition-colors">Pricing</Link>
         <Link href="/#faq" className="hover:text-primary transition-colors">FAQ</Link>
-        <Link href="/guide" className="text-primary text-md transition-colors font-bold">FREE GUIDE</Link>
+        {/* <Link href="/guide" className="text-primary text-md transition-colors font-bold">FREE GUIDE</Link> */}
       </nav>
       <div className="flex items-center gap-3">
   {/* Mobile menu trigger (hamburger) */}
@@ -37,7 +37,7 @@ export default function Navbar({ user, leftSlot }: NavbarProps) {
           <Link href="/#demo" className="hover:text-primary transition-colors">Demo</Link>
           <Link href="/#pricing" className="hover:text-primary transition-colors">Pricing</Link>
           <Link href="/#faq" className="hover:text-primary transition-colors">FAQ</Link>
-          <Link href="/guide" className="hover:text-primary transition-colors">FREE GUIDE</Link>
+          {/* <Link href="/guide" className="hover:text-primary transition-colors">FREE GUIDE</Link> */}
         </nav>
         <div className="p-6 pt-0 grid grid-cols-2 gap-3">
           {user ? (

@@ -82,7 +82,7 @@ export function GenerationProgressModal({
               </div>
               <div className="flex gap-2">
                 <Button asChild className="flex-1">
-                  <Link href={renderedVideoUrl} download={`clip-${clipId}.mp4`}>
+                  <Link href={`https://castclip.revolt-ai.com/${renderedVideoUrl}`} download={`clip-${clipId}.mp4`}>
                     <Download className="h-4 w-4 mr-2" />
                     Download
                   </Link>
