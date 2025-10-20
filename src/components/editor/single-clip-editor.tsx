@@ -38,7 +38,14 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
   const { hasChanges, getChanges, markAsSaved, transcript, hook, hookStyle: storeHookStyle, captionsStyle: storeCaptionsStyle, captionStyleId } = useClipEditorStore();
 
   // Memoize change detection with proper dependency on originalState
-  const hasAnyChanges = useMemo(() => hasChanges(), [hasChanges]);
+  const hasAnyChanges = useMemo(() => hasChanges(), [
+    hasChanges,
+    transcript,
+    hook,
+    storeHookStyle,
+    storeCaptionsStyle,
+    captionStyleId,
+  ]);
 
   // Poll for generation status with smooth continuous progress
   const pollClipStatus = useCallback(async () => {
