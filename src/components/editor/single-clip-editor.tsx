@@ -76,38 +76,11 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
           const newClip = status.renderedClip as Clip;
           setCurrentClip(newClip);
 
-          // Rush to completion - animate from current to 100% quickly
-          setGenerationState(prev => {
-            const currentProgress = prev.progress;
-            const rushDuration = 800; // 0.8 seconds to complete
-            
-            const startProgress = currentProgress;
-            const startRushTime = Date.now();
-            
-            const rush = () => {
-              const elapsed = Date.now() - startRushTime;
-              const progressRatio = Math.min(elapsed / rushDuration, 1);
-              const progress = startProgress + (100 - startProgress) * progressRatio;
-              
-              setGenerationState(current => ({
-                ...current,
-                progress
-              }));
-              
-              if (progressRatio < 1) {
-                requestAnimationFrame(rush);
-              } else {
-                // Set final completed state
-                setGenerationState({
-                  status: 'completed',
-                  progress: 100,
-                  renderedVideoUrl: getClipVideoUrl(newClip),
-                });
-              }
-            };
-            
-            requestAnimationFrame(rush);
-            return prev;
+          // Set final completed state directly, removing the complex animation logic
+          setGenerationState({
+            status: 'completed',
+            progress: 100,
+            renderedVideoUrl: getClipVideoUrl(newClip),
           });
           return;
         }
