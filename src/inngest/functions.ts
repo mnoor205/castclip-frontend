@@ -43,6 +43,7 @@ export const generateVideo = inngest.createFunction(
         try {
           data = JSON.parse(responseText);
         } catch (e) {
+          console.warn("Error: " + e)
           console.warn("Could not parse JSON from generation response, using raw text. Status:", fetchResponse.status);
           data = responseText;
         }
