@@ -13,12 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { deleteClip } from "@/actions/delete";
 import { toast } from "sonner";
 import { getClipVideoUrl, isClipEditable } from "@/lib/constants";
@@ -105,7 +99,7 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
         ) : (
           <Button variant="outline" className="flex-1 text-xs sm:text-sm" size="sm" disabled={!videoUrl} asChild={!!videoUrl}>
             {videoUrl ? (
-              <Link href={videoUrl}>
+              <Link href={videoUrl} download={`clip-${clip.id}.mp4`}>
                 <Download className="mr-1 sm:mr-1.5 h-3 w-3 sm:h-4 sm:w-4" />
                 Download
               </Link>
@@ -118,23 +112,14 @@ function ClipCard({ clip, readOnly = false }: { clip: Clip; readOnly?: boolean }
           </Button>
         )}
         {isEditable && (
-          <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" disabled>
-                <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Coming Soon</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-          // <Link href={`/projects/${clip.projectId}/edit/${clip.id}`}>
-          //   <Button variant="outline" size="sm">
-          //     <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-          //   </Button>
-          // </Link>
+        //   <Button variant="outline" size="sm" disabled>
+        //   <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+        // </Button>
+          <Link href={`/projects/${clip.projectId}/edit/${clip.id}`}>
+            <Button variant="outline" size="sm">
+              <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+          </Link>
         )}
         {!readOnly && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

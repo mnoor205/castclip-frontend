@@ -20,7 +20,7 @@ export const generateVideo = inngest.createFunction(
   },
   { event: GENERATE_VIDEO_EVENT },
   async ({ event, step }) => {
-    const rawResponse = await step.run("send-generation-request", async () => {
+    const { status, responseData } = await step.run("send-generation-request", async () => {
       const fetchResponse = await fetch("https://revoltai26--ai-podcast-clipper-style-web.modal.run/generate", {
         method: "POST",
         headers: {
@@ -36,18 +36,29 @@ export const generateVideo = inngest.createFunction(
         throw new Error(errorMessage);
       }
 
-      return fetchResponse;
+      let data = null;
+      // Only try to parse a body if the request was successful but not just 'Accepted'
+      if (fetchResponse.status !== 202) {
+        const responseText = await fetchResponse.text();
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          console.warn("Could not parse JSON from generation response, using raw text. Status:", fetchResponse.status);
+          data = responseText;
+        }
+      }
+
+      return { status: fetchResponse.status, responseData: data };
     });
 
     // If the response is 202 (accepted), sleep for processing time
-    if (rawResponse.status === 202) {
+    if (status === 202) {
       await step.sleep("wait-for-generation", PROCESSING_TIMEOUT); // Wait for generation to complete
     }
 
     // We might want to handle the response here in the future
     // For example, to get a render ID and store it.
-    if (rawResponse.status !== 202) {
-      const responseData = await (rawResponse as unknown as Response).json();
+    if (status !== 202) {
       console.log("Generation request successful:", responseData);
     }
 
