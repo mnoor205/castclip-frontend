@@ -21,8 +21,7 @@ interface SingleClipEditorProps {
   projectStyle?: number | null;
 }
 
-export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, projectStyle }: SingleClipEditorProps) {
-  const [currentClip, setCurrentClip] = useState(initialClip);
+export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle }: SingleClipEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [generationState, setGenerationState] = useState<{
@@ -70,17 +69,41 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
         }
         
         // After 30 seconds, start checking for actual completion
-        const status = await checkClipStatus(currentClip.id);
+        const status = await checkClipStatus(clip.id);
         
-        if (status.isRendered && status.renderedClip) {
-          const newClip = status.renderedClip as Clip;
-          setCurrentClip(newClip);
-
-          // Set final completed state directly, removing the complex animation logic
-          setGenerationState({
-            status: 'completed',
-            progress: 100,
-            renderedVideoUrl: getClipVideoUrl(newClip),
+        if (status.isRendered) {
+          // Rush to completion - animate from current to 100% quickly
+          setGenerationState(prev => {
+            const currentProgress = prev.progress;
+            const rushDuration = 800; // 0.8 seconds to complete
+            
+            const startProgress = currentProgress;
+            const startRushTime = Date.now();
+            
+            const rush = () => {
+              const elapsed = Date.now() - startRushTime;
+              const progressRatio = Math.min(elapsed / rushDuration, 1);
+              const progress = startProgress + (100 - startProgress) * progressRatio;
+              
+              setGenerationState(current => ({
+                ...current,
+                progress
+              }));
+              
+              if (progressRatio < 1) {
+                requestAnimationFrame(rush);
+              } else {
+                // Set final completed state
+                setGenerationState({
+                  status: 'completed',
+                  progress: 100,
+                  renderedVideoUrl: status.renderedClipUrl,
+                });
+              }
+            };
+            
+            requestAnimationFrame(rush);
+            return prev;
           });
           return;
         }
@@ -114,7 +137,7 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
     };
 
     poll();
-  }, [currentClip.id]);
+  }, [clip.id]);
 
   // Warn on browser refresh/close
   useEffect(() => {
@@ -151,7 +174,7 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
       const changes = getChanges();
       
       const finalChanges = {
-        clipId: currentClip.id,
+        clipId: clip.id,
         transcript: changes.transcript?.map(({ word, start, end }) => ({ word, start, end })),
         hook: changes.hook,
         hookStyle: changes.hookStyle,
@@ -159,7 +182,7 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
         captionStyleId: changes.captionStyleId,
       };
 
-      const s3Key = currentClip.s3Key;
+      const s3Key = clip.s3Key;
       if (!s3Key) {
         throw new Error("s3Key not found, cannot trigger render.");
       }
@@ -175,7 +198,7 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
         projectCaptionStyle: projectStyle ?? 1,
       };
 
-      const videoUrl = getClipVideoUrl(currentClip);
+      const videoUrl = getClipVideoUrl(clip);
       if (!videoUrl) {
         throw new Error("Video URL is not available, cannot trigger render.");
       }
@@ -201,9 +224,9 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
     }
   };
   
-  const rawS3Key = currentClip.s3Key ? currentClip.s3Key.replace(/\.mp4$/, '_raw.mp4') : null;
-  const videoUrl = rawS3Key ? getClipVideoUrl({ s3Key: rawS3Key, updatedAt: currentClip.updatedAt }) : null;
-  const initialTranscript = Array.isArray(currentClip.transcript) ? (currentClip.transcript as TranscriptWord[]) : [];
+  const rawS3Key = clip.s3Key ? clip.s3Key.replace(/\.mp4$/, '_raw.mp4') : null;
+  const videoUrl = rawS3Key ? getClipVideoUrl({ s3Key: rawS3Key }) : null;
+  const initialTranscript = Array.isArray(clip.transcript) ? (clip.transcript as TranscriptWord[]) : [];
 
   // Safety check for video URL
   if (!videoUrl) {
@@ -275,7 +298,7 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
         <ClipEditor
           videoUrl={videoUrl}
           initialTranscript={initialTranscript}
-          initialHook={currentClip.hook || ""}
+          initialHook={clip.hook || ""}
           captionsStyle={captionsStyle}
           hookStyle={hookStyle}
           projectStyle={projectStyle ?? VIDEO_GENERATION.DEFAULT_CAPTION_STYLE}
@@ -286,7 +309,7 @@ export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, 
       <GenerationProgressModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        clipId={currentClip.id}
+        clipId={clip.id}
         progress={generationState.progress}
         status={generationState.status}
         renderedVideoUrl={generationState.renderedVideoUrl}

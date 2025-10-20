@@ -151,7 +151,7 @@ export async function checkClipStatus(clipId: string) {
     // Check if clip status is "rendered"
     const isRendered = clip.status === "rendered";
 
-    return { success: true, isRendered, renderedClip: isRendered ? clip : null };
+    return { success: true, isRendered, renderedClipUrl: isRendered ? (clip.s3Key ?? null) : null };
   } catch (error) {
     console.error("Error checking clip status:", error);
     return { success: false, error: "Failed to check clip status", isRendered: false };
