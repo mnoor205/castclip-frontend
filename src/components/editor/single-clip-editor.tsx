@@ -21,7 +21,8 @@ interface SingleClipEditorProps {
   projectStyle?: number | null;
 }
 
-export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle }: SingleClipEditorProps) {
+export function SingleClipEditor({ clip: initialClip, captionsStyle, hookStyle, projectStyle }: SingleClipEditorProps) {
+  const [currentClip, setCurrentClip] = useState(initialClip);
   const [isSaving, setIsSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [generationState, setGenerationState] = useState<{
@@ -69,9 +70,12 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
         }
         
         // After 30 seconds, start checking for actual completion
-        const status = await checkClipStatus(clip.id);
+        const status = await checkClipStatus(currentClip.id);
         
-        if (status.isRendered) {
+        if (status.isRendered && status.renderedClip) {
+          const newClip = status.renderedClip as Clip;
+          setCurrentClip(newClip);
+
           // Rush to completion - animate from current to 100% quickly
           setGenerationState(prev => {
             const currentProgress = prev.progress;
@@ -97,7 +101,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
                 setGenerationState({
                   status: 'completed',
                   progress: 100,
-                  renderedVideoUrl: status.renderedClipUrl,
+                  renderedVideoUrl: getClipVideoUrl(newClip),
                 });
               }
             };
@@ -137,7 +141,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
     };
 
     poll();
-  }, [clip.id]);
+  }, [currentClip.id]);
 
   // Warn on browser refresh/close
   useEffect(() => {
@@ -174,7 +178,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
       const changes = getChanges();
       
       const finalChanges = {
-        clipId: clip.id,
+        clipId: currentClip.id,
         transcript: changes.transcript?.map(({ word, start, end }) => ({ word, start, end })),
         hook: changes.hook,
         hookStyle: changes.hookStyle,
@@ -182,7 +186,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
         captionStyleId: changes.captionStyleId,
       };
 
-      const s3Key = clip.s3Key;
+      const s3Key = currentClip.s3Key;
       if (!s3Key) {
         throw new Error("s3Key not found, cannot trigger render.");
       }
@@ -198,7 +202,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
         projectCaptionStyle: projectStyle ?? 1,
       };
 
-      const videoUrl = getClipVideoUrl(clip);
+      const videoUrl = getClipVideoUrl(currentClip);
       if (!videoUrl) {
         throw new Error("Video URL is not available, cannot trigger render.");
       }
@@ -224,9 +228,9 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
     }
   };
   
-  const rawS3Key = clip.s3Key ? clip.s3Key.replace(/\.mp4$/, '_raw.mp4') : null;
-  const videoUrl = rawS3Key ? getClipVideoUrl({ s3Key: rawS3Key }) : null;
-  const initialTranscript = Array.isArray(clip.transcript) ? (clip.transcript as TranscriptWord[]) : [];
+  const rawS3Key = currentClip.s3Key ? currentClip.s3Key.replace(/\.mp4$/, '_raw.mp4') : null;
+  const videoUrl = rawS3Key ? getClipVideoUrl({ s3Key: rawS3Key, updatedAt: currentClip.updatedAt }) : null;
+  const initialTranscript = Array.isArray(currentClip.transcript) ? (currentClip.transcript as TranscriptWord[]) : [];
 
   // Safety check for video URL
   if (!videoUrl) {
@@ -298,7 +302,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
         <ClipEditor
           videoUrl={videoUrl}
           initialTranscript={initialTranscript}
-          initialHook={clip.hook || ""}
+          initialHook={currentClip.hook || ""}
           captionsStyle={captionsStyle}
           hookStyle={hookStyle}
           projectStyle={projectStyle ?? VIDEO_GENERATION.DEFAULT_CAPTION_STYLE}
@@ -309,7 +313,7 @@ export function SingleClipEditor({ clip, captionsStyle, hookStyle, projectStyle 
       <GenerationProgressModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        clipId={clip.id}
+        clipId={currentClip.id}
         progress={generationState.progress}
         status={generationState.status}
         renderedVideoUrl={generationState.renderedVideoUrl}
