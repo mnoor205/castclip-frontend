@@ -80,7 +80,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} bg-gradient-to-br from-pink-50 via-transparent to-orange-50`}
+        className={`${geistSans.variable} ${geistMono.variable} ${anton.variable}`}
       >
         <PostHogProvider>
           {children}

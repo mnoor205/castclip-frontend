@@ -6,13 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight,
-  UploadCloud,
   Sparkles,
   Play,
   Check,
   ChevronDown,
-  Youtube,
-  Link2,
+  AArrowDown
 } from "lucide-react";
 import Link from "next/link";
 import { ClipDisplay } from "@/components/projects/clip-display";
@@ -58,45 +56,7 @@ export default async function Home() {
       uploadedFileId: "demoFile3",
       youtubeUrl: "https://www.youtube.com/watch?v=19aKbciNKdA&t=1671s",
     },
-    // {
-    //   id: "4",
-    //   s3Key: "app/shetty.mp4",
-    //   title: "Demo Clip 4",
-    //   createdAt: new Date(),
-    //   userId: "demoUser",
-    //   processingStatus: "processed",
-    //   transcript: "",
-    //   customInstructions: "",
-    //   uploadedFileId: "demoFile4",
-    //   youtubeUrl: "https://www.youtube.com/watch?v=cLTUA1lneS0",
-    // },
-  ];
-
-  // const testimonials = [
-  //   {
-  //     name: "Sarah Chen",
-  //     title: "Podcast Host, Tech Talks",
-  //     avatar: "SC",
-  //     content: "CastClip transformed my podcast growth strategy. I went from 0 to 50K TikTok followers in just 3 months!",
-  //     rating: 5,
-  //   },
-  //   {
-  //     name: "Marcus Rodriguez",
-  //     title: "Business Podcast Network",
-  //     avatar: "MR",
-  //     content: "The AI is incredibly accurate at finding the best moments. Saves me 10+ hours per week of editing.",
-  //     rating: 5,
-  //   },
-  //   {
-  //     name: "Jennifer Kim",
-  //     title: "Wellness Podcast Creator",
-  //     avatar: "JK",
-  //     content: "My clips now get 100x more engagement than before. The viral moments it finds are spot-on.",
-  //     rating: 5,
-  //   },
-  // ];
-
-  // features section is rendered inline below the hero
+  ]
 
   const stats = [
     { number: "2000+", label: "Clips Generated" },
@@ -197,114 +157,42 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Problem/Solution Section */}
-      <section className="px-4 py-20 sm:py-32">
+      {/* Intro Media Grid Section (to be replaced with videos later) */}
+      <section className="px-4 py-16 sm:py-20">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <Badge variant="outline" className="mb-4">The Problem</Badge>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-red-600">
-                Creating Social Media Content is Eating Your Time
-              </h2>
-              <div className="space-y-4 text-lg text-muted-foreground">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
-                  <p>Spending 10+ hours per week manually editing clips</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
-                  <p>Missing the best moments because you can&apos;t watch everything</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
-                  <p>Clips getting low engagement because they&apos;re not optimized</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-3 flex-shrink-0" />
-                  <p>Struggling to keep up with social media demands</p>
-                </div>
+          <div className="grid gap-12">
+            {/* Row 1 */}
+            <div className="grid md:grid-cols-2 gap-6 md:gap-10 items-center min-h-[320px] sm:min-h-[380px] md:min-h-[440px]">
+              <div className="flex flex-col justify-center md:pl-12 lg:pl-16">
+                <h3 className="text-xl sm:text-4xl font-bold">Upload Any MP4</h3>
+                <p className="text-muted-foreground mt-2 max-w-md">
+                  Drag and drop MP4 files up to 2GB. We&apos;ll process the entire episode to find viral moments.
+                </p>
+              </div>
+              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-square max-w-[22rem] sm:max-w-[26rem] md:max-w-[28rem] lg:max-w-[32rem] mx-auto" />
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid md:grid-cols-2 gap-6 md:gap-10 items-center min-h-[320px] sm:min-h-[380px] md:min-h-[440px]">
+              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-square max-w-[22rem] sm:max-w-[26rem] md:max-w-[28rem] lg:max-w-[32rem] mx-auto md:order-1 order-2" />
+              <div className="order-1 md:order-2 flex flex-col justify-center md:pl-12 lg:pl-16">
+                <h3 className="text-xl sm:text-4xl font-bold">Connect Your YouTube Channel</h3>
+                <p className="text-muted-foreground mt-2 max-w-md">
+                Connect your channel to pull videos securely and generate clips without manual uploads.
+                </p>
               </div>
             </div>
-            <div>
-              <Badge variant="default" className="mb-4 bg-gradient-primary text-white border-0">The Solution</Badge>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6 text-green-600">
-                AI Does the Heavy Lifting for You
-              </h2>
-              <div className="space-y-4 text-lg text-muted-foreground">
-                <div className="flex items-start gap-3">
-                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                  <p>AI analyzes your entire podcast in minutes, not hours</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                  <p>Automatically finds the most viral-worthy moments</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                  <p>Creates perfectly formatted clips for all platforms</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                  <p>Get up to 10 ready-to-post clips at one time</p>
-                </div>
+
+            {/* Row 3 */}
+            <div className="grid md:grid-cols-2 gap-6 md:gap-10 items-center min-h-[320px] sm:min-h-[380px] md:min-h-[440px]">
+              <div className="flex flex-col justify-center md:pl-12 lg:pl-16">
+                <h3 className="text-xl sm:text-4xl font-bold">Paste Video Link.</h3>
+                <p className="text-muted-foreground mt-2 max-w-md">
+                  Paste a YouTube video URL and CastClip will generate optimized, share‑ready clips.
+                </p>
               </div>
+              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-square max-w-[22rem] sm:max-w-[26rem] md:max-w-[28rem] lg:max-w-[32rem] mx-auto" />
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section (moved below hero) */}
-      <section id="features" className="px-4 py-16 sm:py-20">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <Badge variant="outline" className="mb-3">Ways to Create Clips</Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Start with Files, Your Channel, or Links</h2>
-            <p className="text-muted-foreground max-w-3xl mx-auto">
-              Choose the method that fits your workflow. Import your content quickly and let the AI do the rest.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="p-6">
-              <CardContent className="p-0">
-                <div className="flex items-start gap-4">
-                  <div className="bg-gradient-to-br from-sky-500 to-blue-500 p-3 rounded-lg">
-                    <UploadCloud className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Upload Files</h3>
-                    <p className="text-muted-foreground">Drag and drop MP4 files up to 2GB. We process the entire episode to find viral moments.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6">
-              <CardContent className="p-0">
-                <div className="flex items-start gap-4">
-                  <div className="bg-gradient-to-br from-pink-500 to-orange-500 p-3 rounded-lg">
-                    <Youtube className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Connect YouTube Channel</h3>
-                    <p className="text-muted-foreground">Connect your channel to pull videos securely and generate clips without manual uploads.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="p-6">
-              <CardContent className="p-0">
-                <div className="flex items-start gap-4">
-                  <div className="bg-gradient-to-br from-emerald-500 to-green-500 p-3 rounded-lg">
-                    <Link2 className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Use Links</h3>
-                    <p className="text-muted-foreground">Paste a link to any video and start generating clips instantly.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
@@ -322,125 +210,6 @@ export default async function Home() {
           <ClipDisplay clips={demoClips as any} readOnly center/>
         </div>
       </section>
-
-      
-
-      {/* Features Section (original) removed per request */}
-
-      {/* How It Works Section */}
-      {/* <section className="px-4 py-20 sm:py-32">
-        <div className="max-w-6xl mx-auto text-center">
-          <Badge variant="outline" className="mb-4">How It Works</Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-            From Podcast to Viral Clips in 3 Simple Steps
-          </h2>
-          <p className="text-xl text-muted-foreground mb-16 max-w-3xl mx-auto">
-            Our streamlined process transforms your long-form content into engaging, 
-            shareable clips that grow your audience across all social platforms.
-          </p>
-          
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connection lines for desktop 
-            <div className="hidden md:block absolute top-20 left-1/3 w-1/3 h-0.5 bg-gradient-primary opacity-50" />
-            <div className="hidden md:block absolute top-20 right-1/3 w-1/3 h-0.5 bg-gradient-primary opacity-50" />
-            
-            <div className="relative">
-              <div className="bg-gradient-primary text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6">
-                1
-              </div>
-              <Card className="p-8 hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-0 text-center">
-                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-4 rounded-full inline-block mb-4">
-                    <UploadCloud className="h-8 w-8 text-gradient-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4">Upload or Paste YouTube Link</h3>
-                  <p className="text-muted-foreground">
-                    Drag and drop an MP4 (up to 2GB), or paste a YouTube link to import directly. 
-                    Start with a local file or any public YouTube video.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="relative">
-              <div className="bg-gradient-primary text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6">
-                2
-              </div>
-              <Card className="p-8 hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-0 text-center">
-                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-4 rounded-full inline-block mb-4">
-                    <Sparkles className="h-8 w-8 text-gradient-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4">AI Creates Viral Clips</h3>
-                  <p className="text-muted-foreground">
-                    Our AI analyzes uploads and YouTube imports, identifies the most engaging moments, 
-                    and creates up to 10 perfectly formatted clips optimized for social media virality.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="relative">
-              <div className="bg-gradient-primary text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-6">
-                3
-              </div>
-              <Card className="p-8 hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-0 text-center">
-                  <div className="bg-gradient-to-br from-pink-100 to-orange-100 p-4 rounded-full inline-block mb-4">
-                    <Download className="h-8 w-8 text-gradient-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4">Download & Share</h3>
-                  <p className="text-muted-foreground">
-                    Review your clips, download in the perfect format for each platform, 
-                    and watch your audience grow with content that actually converts.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section> */}
-
-      {/* Testimonials Section */}
-      {/* <section className="px-4 py-20 sm:py-32 bg-muted/30">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4">Success Stories</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-              Join Thousands of Growing Podcasters
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              See how podcasters like you are growing their audience and revenue with viral clips
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="p-8 hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-0">
-                  <div className="flex items-center gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <p className="text-muted-foreground mb-6 leading-relaxed">
-                    "{testimonial.content}"
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-semibold">
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <div className="font-semibold">{testimonial.name}</div>
-                      <div className="text-sm text-muted-foreground">{testimonial.title}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section> */}
 
       {/* Pricing Section */}
       <section id="pricing" className="px-4 py-20 sm:py-32">
