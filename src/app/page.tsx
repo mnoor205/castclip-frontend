@@ -160,17 +160,48 @@ export default async function Home() {
       </section>
 
       <section className="py-8 sm:py-12 overflow-hidden">
-        <div className="relative flex items-center justify-center min-h-[60px]">
+        <div className="text-center mb-6">
+          <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider font-medium">
+            As Seen On
+          </p>
+        </div>
+        <div className="relative flex items-center justify-center min-h-[60px] overflow-hidden">
           <div className="flex animate-scroll gap-16 sm:gap-20 md:gap-24 items-center">
             {[
               { name: "TikTok", logo: "/logos/tiktok.svg", type: "platform" },
-              { name: "Reels", logo: "/logos/reels.svg", type: "platform" },
+              { name: "Instagram", logo: "/logos/reels.svg", type: "platform" },
               { name: "Shorts", logo: "/logos/shorts.svg", type: "platform" },
               { name: "Product Hunt", logo: "/logos/producthunt.svg", type: "featured" },
               { name: "Hacker News", logo: "/logos/hackernews.svg", type: "featured" },
             ].map((platform, index) => (
               <div
                 key={index}
+                className="flex shrink-0 items-center justify-center gap-3 px-4 group"
+              >
+                {platform.logo && (
+                  <Image
+                    src={platform.logo}
+                    alt={`${platform.name} logo`}
+                    width={24}
+                    height={24}
+                    className="w-6 h-6 sm:w-7 sm:h-7 opacity-60 group-hover:opacity-100 transition-opacity"
+                  />
+                )}
+                <div className="text-lg sm:text-xl font-semibold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
+                  {platform.name}
+                </div>
+              </div>
+            ))}
+            {/* Duplicate logos for seamless infinite scroll */}
+            {[
+              { name: "TikTok", logo: "/logos/tiktok.svg", type: "platform" },
+              { name: "Instagram", logo: "/logos/reels.svg", type: "platform" },
+              { name: "Shorts", logo: "/logos/shorts.svg", type: "platform" },
+              { name: "Product Hunt", logo: "/logos/producthunt.svg", type: "featured" },
+              { name: "Hacker News", logo: "/logos/hackernews.svg", type: "featured" },
+            ].map((platform, index) => (
+              <div
+                key={`duplicate-${index}`}
                 className="flex shrink-0 items-center justify-center gap-3 px-4 group"
               >
                 {platform.logo && (
@@ -232,65 +263,55 @@ export default async function Home() {
       </section>
 
       {/* Video Features Section */}
-      <section className="px-4 py-16 sm:py-20">
+      <section id="demo" className="px-4 py-12 sm:py-16 md:py-20">
         <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4">
+              See It In Action
+            </h2>
+          </div>
           {/* Three-column layout: left/right callouts flanking the video on md+; stacked on mobile */}
-          <div className="grid gap-8 md:gap-10 md:grid-cols-[1fr_auto_1fr] items-center">
+          <div className="grid gap-6 sm:gap-8 md:gap-10 lg:gap-12 md:grid-cols-[1fr_auto_1fr] items-center">
             {/* Left callout (Captions) */}
-            <div className="hidden md:block relative min-h-[500px] sm:min-h-[600px] md:min-h-[700px]">
-              <div className="p-4 md:p-5 rounded-xl border border-border/50 bg-muted/30 max-w-xs absolute bottom-[12%] right-[-12px] sm:right-[-16px] md:right-[-20px]">
-                <div className="text-sm font-semibold mb-1">Live Styled Captions</div>
-                <p className="text-muted-foreground text-sm leading-relaxed">
+            <div className="hidden md:block relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]">
+              <div className="p-3 md:p-4 lg:p-5 rounded-xl border border-border/50 bg-muted/90 max-w-[280px] md:max-w-xs lg:max-w-sm absolute bottom-[12%] right-[-8px] md:right-[-12px] lg:right-[-16px] xl:right-[-20px]">
+                <div className="text-xs md:text-sm lg:text-base font-semibold mb-1 md:mb-1.5">Live Styled Captions</div>
+                <p className="text-muted-foreground text-xs md:text-sm lg:text-base leading-relaxed">
                   Readable, dynamic captions that follow speech and boost retention.
                 </p>
               </div>
             </div>
 
             {/* Video */}
-            <div className="relative flex items-center justify-center min-h-[500px] sm:min-h-[600px] md:min-h-[700px]">
+            <div className="relative flex items-center justify-center min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] px-2 sm:px-4 md:px-0">
               <VideoFeaturesPlayer />
 
               {/* Mobile-sized side callouts positioned around the video */}
-              <div className="absolute left-2 top-[12%] md:hidden">
-                <div className="p-2 rounded-lg border border-border/50 bg-muted/30 w-36">
-                  <div className="text-xs font-semibold mb-0.5">Attention Grabbing Hooks</div>
-                  <p className="text-muted-foreground text-[11px] leading-snug">Short, high‑impact openers.</p>
+              <div className="absolute left-0 top-[3%] sm:left-2 sm:top-[6%] md:hidden z-10">
+                <div className="p-2 sm:p-2.5 rounded-lg border border-border/50 bg-muted/95 backdrop-blur-sm shadow-lg w-[110px] sm:w-[130px]">
+                  <div className="text-[10px] sm:text-[11px] font-semibold mb-0.5 sm:mb-1 leading-tight break-words">Attention Grabbing Hooks</div>
+                  <p className="text-muted-foreground text-[9px] sm:text-[10px] leading-snug break-words">Short, high‑impact openers.</p>
                 </div>
               </div>
-              <div className="absolute right-2 bottom-[12%] md:hidden">
-                <div className="p-2 rounded-lg border border-border/50 bg-muted/30 w-36 text-left">
-                  <div className="text-xs font-semibold mb-0.5">Live Styled Captions</div>
-                  <p className="text-muted-foreground text-[11px] leading-snug">Readable, dynamic captions.</p>
+              <div className="absolute right-0 bottom-[3%] sm:right-2 sm:bottom-[6%] md:hidden z-10">
+                <div className="p-2 sm:p-2.5 rounded-lg border border-border/50 bg-muted/95 backdrop-blur-sm shadow-lg w-[110px] sm:w-[130px] text-left">
+                  <div className="text-[10px] sm:text-[11px] font-semibold mb-0.5 sm:mb-1 leading-tight break-words">Live Styled Captions</div>
+                  <p className="text-muted-foreground text-[9px] sm:text-[10px] leading-snug break-words">Readable, dynamic captions.</p>
                 </div>
               </div>
             </div>
 
             {/* Right callout (Hooks) */}
-            <div className="hidden md:block relative min-h-[500px] sm:min-h-[600px] md:min-h-[700px]">
-              <div className="p-4 md:p-5 rounded-xl border border-border/50 bg-muted/30 max-w-xs mr-auto absolute top-[12%]">
-                <div className="text-sm font-semibold mb-1">Attention Grabbing Hooks</div>
-                <p className="text-muted-foreground text-sm leading-relaxed">
+            <div className="hidden md:block relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]">
+              <div className="p-3 md:p-4 lg:p-5 rounded-xl border border-border/50 bg-muted/90 max-w-[280px] md:max-w-xs lg:max-w-sm ml-auto absolute top-[12%]">
+                <div className="text-xs md:text-sm lg:text-base font-semibold mb-1 md:mb-1.5">Attention Grabbing Hooks</div>
+                <p className="text-muted-foreground text-xs md:text-sm lg:text-base leading-relaxed">
                   Short, high‑impact openers that immediately grab viewers and set context.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Mobile callouts (stacked under video) */}
-          <div className="mt-6 grid gap-4 sm:gap-6 md:hidden">
-            <div className="p-4 rounded-xl border border-border/50 bg-muted/30">
-              <div className="text-sm font-semibold mb-1">Attention Grabbing Hooks</div>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Short, high‑impact openers that immediately grab viewers and set context.
-              </p>
-            </div>
-            <div className="p-4 rounded-xl border border-border/50 bg-muted/30">
-              <div className="text-sm font-semibold mb-1">Live Styled Captions</div>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Readable, dynamic captions that follow speech and boost retention.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
