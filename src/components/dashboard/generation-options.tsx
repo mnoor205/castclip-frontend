@@ -23,10 +23,10 @@ export default function GenerationOptions({
   onCaptionStyleChange,
 }: GenerationOptionsProps) {
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-4 sm:space-y-6 pt-2 sm:pt-4">
       {/* Caption style grid */}
       <div>
-        <h3 className="text-lg font-medium mb-3">Choose Your Caption Style</h3>
+        <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3">Choose Your Caption Style</h3>
         <div className="flex justify-center">
           <CaptionStyleSelector
             className="max-w-4xl"

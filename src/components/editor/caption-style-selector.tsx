@@ -2,7 +2,7 @@
 
 import { useClipEditorStore } from "@/stores/clip-editor-store";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +62,7 @@ export const CaptionStyleSelector = ({
   };
 
   return (
-    <div className={cn("grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4", className)}>
+    <div className={cn("flex flex-wrap justify-center gap-2 sm:gap-4", className)}>
       {VIDEO_TYPES.map((type) => {
         const isComingSoon = type.status === "coming-soon";
         const isSelected = captionStyleId === type.id;
@@ -70,39 +70,36 @@ export const CaptionStyleSelector = ({
         return (
           <div
             key={type.id}
-            className={`group relative rounded-xl border-2 transition-all duration-200 ${
-              isComingSoon ? "cursor-not-allowed bg-muted/40" : "cursor-pointer hover:shadow-lg"
-            } ${
-              isSelected && !isComingSoon
-                ? "border-primary bg-primary/5 shadow-md"
-                : "border-border hover:border-primary/50"
+            className={`group relative w-32 sm:w-40 ${
+              isComingSoon ? "cursor-not-allowed" : "cursor-pointer"
             }`}
             onClick={() => handleVideoTypeSelect(type.id, !!isComingSoon)}
           >
-            {isSelected && !isComingSoon && (
-              <div className="absolute -top-2 -right-2 z-10">
-                <div className="bg-primary rounded-full p-1">
-                  <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+            <div
+              className={`relative w-full h-28 sm:h-32 overflow-hidden rounded-md sm:rounded-xl border sm:border-2 bg-muted transition-all duration-200 ${
+                isSelected && !isComingSoon
+                  ? "border-primary bg-primary/5 shadow-lg ring-2 ring-primary/70"
+                  : "border-border hover:border-primary/50 hover:shadow-lg"
+              } ${isComingSoon ? "bg-muted/40" : ""}`}
+            >
+              {type.status === "beta" && (
+                <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-10">
+                  <Badge
+                    variant="default"
+                    className="bg-primary text-white border border-pink-500/50 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5"
+                  >
+                    Beta
+                  </Badge>
                 </div>
-              </div>
-            )}
+              )}
 
-            {type.status === "beta" && (
-              <div className="absolute top-2 left-2 z-10">
-                <Badge variant="default" className="bg-primary text-white border border-pink-500/50">
-                  Beta
-                </Badge>
-              </div>
-            )}
-
-            <div className="relative aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
               {isComingSoon ? (
                 <div className="flex h-full w-full items-center justify-center">
-                  <Sparkles className="h-10 w-10 text-muted-foreground/50" />
+                  <Sparkles className="h-6 w-6 sm:h-10 sm:w-10 text-muted-foreground/50" />
                 </div>
               ) : (
                 <Image
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover object-bottom"
                   src={type.exampleVideoUrl}
                   alt={`${type.title} preview`}
                   width={400}
@@ -113,11 +110,8 @@ export const CaptionStyleSelector = ({
               )}
             </div>
 
-            <div className="p-2 sm:p-3">
-              <h3 className="font-semibold text-xs sm:text-sm mb-1 sm:mb-2">{type.title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed hidden sm:block">
-                {type.description}
-              </p>
+            <div className="pt-1 sm:pt-2 text-center">
+              <h3 className="font-semibold text-[11px] sm:text-sm">{type.title}</h3>
             </div>
           </div>
         );

@@ -6,11 +6,14 @@ import { Volume2, VolumeX, Play } from "lucide-react";
 export function VideoFeaturesPlayer() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Set initial muted state
+    video.muted = false;
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -43,7 +46,7 @@ export function VideoFeaturesPlayer() {
   };
 
   return (
-    <div className="relative z-10 bg-muted/70 border border-border rounded-3xl w-[200px] h-[400px] sm:w-[250px] sm:h-[500px] md:w-[300px] md:h-[600px] overflow-hidden cursor-pointer">
+    <div className="relative z-10 bg-muted/70 border border-border rounded-3xl w-[280px] h-[560px] sm:w-[250px] sm:h-[500px] md:w-[300px] md:h-[600px] overflow-hidden cursor-pointer">
       <video
         ref={videoRef}
         src="https://castclip.revolt-ai.com/app/examples/demo/clip_0.mp4"

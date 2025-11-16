@@ -148,7 +148,15 @@ export default function PricingSection({
             {title}
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            {description}
+            {description.split("No subscription").map((part, index, array) => 
+              index === 0 ? (
+                <span key={index}>
+                  {part}
+                  <span className="font-bold text-black">No subscription</span>
+                  {array[1]}
+                </span>
+              ) : null
+            )}
           </p>
           <div className="flex justify-center mb-8">
             <Badge variant="secondary" className="px-4 py-2 text-sm font-medium bg-green-50 text-green-700 border-green-200">

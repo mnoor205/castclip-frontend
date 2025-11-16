@@ -114,15 +114,16 @@ export default function UploadModal({
               maxSize={2000 * 1024 * 1024}
               maxFiles={1}
               disabled={uploading}
+              containerClassName="w-full"
+              dropZoneClassName="flex flex-col items-center justify-center w-full min-h-[280px] sm:min-h-[240px] border-2 border-dashed !border-primary rounded-lg text-center bg-background hover:!bg-primary/5 transition-colors"
             >
               {() => (
-                <div className="flex flex-col items-center justify-center space-y-4 rounded-lg p-10 text-center border border-dashed">
-                  <UploadCloud className="text-muted-foreground h-12 w-12" />
-                  <p className="font-medium">Drag and drop your file</p>
-                  <p className="text-muted-foreground text-sm">or click to browse [MP4 up to 2GB]</p>
-                  <Button size="sm" disabled={uploading}>
-                    Select File
-                  </Button>
+                <div className="flex flex-col items-center space-y-3 sm:space-y-4 px-4">
+                  <UploadCloud className="text-muted-foreground h-14 w-14 sm:h-12 sm:w-12" />
+                  <p className="font-medium text-base sm:text-base">Drag and drop your file</p>
+                  <p className="text-muted-foreground text-xs sm:text-sm">
+                    or click to browse [MP4 up to 2GB]
+                  </p>
                 </div>
               )}
             </Dropzone>

@@ -1,4 +1,3 @@
-/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { getUserData } from "@/actions/user";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/navigation/navbar";
@@ -7,13 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight,
   Sparkles,
-  Play,
   Check,
-  ChevronDown,
-  AArrowDown
+  ChevronDown
 } from "lucide-react";
 import Link from "next/link";
-import { ClipDisplay } from "@/components/projects/clip-display";
 import PricingSection from "@/components/pricing/pricing-section";
 import Image from "next/image";
 import { VideoFeaturesPlayer } from "@/components/ui/video-features-player";
@@ -21,50 +17,10 @@ import { VideoFeaturesPlayer } from "@/components/ui/video-features-player";
 export default async function Home() {
   const user = await getUserData();
 
-  const demoClips = [
-    {
-      id: "1",
-      s3Key: "app/examples/demo/clip_1.mp4",
-      title: "Demo Clip 1",
-      createdAt: new Date(),
-      userId: "demoUser",
-      processingStatus: "processed",
-      transcript: "",
-      customInstructions: "",
-      uploadedFileId: "demoFile1",
-      youtubeUrl: "https://www.youtube.com/watch?v=q-_hwD1jNK4",
-    },
-    {
-      id: "2",
-      s3Key: "app/examples/demo/clip_2.mp4",
-      title: "Demo Clip 2",
-      createdAt: new Date(),
-      userId: "demoUser",
-      processingStatus: "processed",
-      transcript: "",
-      customInstructions: "",
-      uploadedFileId: "demoFile2",
-      youtubeUrl: "https://www.youtube.com/watch?v=0cn3VBjfN8g",
-    },
-    {
-      id: "3",
-      s3Key: "app/examples/demo/clip_3.mp4",
-      title: "Demo Clip 3",
-      createdAt: new Date(),
-      userId: "demoUser",
-      processingStatus: "processed",
-      transcript: "",
-      customInstructions: "",
-      uploadedFileId: "demoFile3",
-      youtubeUrl: "https://www.youtube.com/watch?v=19aKbciNKdA&t=1671s",
-    },
-  ]
-
   const stats = [
     { number: "2000+", label: "Clips Generated" },
     { number: "20+", label: "Clippers" },
-    { number: "500%", label: "Avg. Growth" },
-    { number: "95%", label: "Satisfaction Rate" },
+    { number: "10M+", label: "Total Views" },
   ];
 
   const faqs = [
@@ -86,7 +42,7 @@ export default async function Home() {
     },
     {
       question: "Can I customize the clips?",
-      answer: "To keep the process as simple as possible, as of now we don't allow any sort of custom editing. We believe customization brings complexity",
+      answer: "Once clips are generated, you can style and edit them however you like.",
     },
     {
       question: "What's included in the free plan?",
@@ -118,7 +74,7 @@ export default async function Home() {
             </Badge>
           </div>
           
-          <h1 className="text-4xl sm:text-6xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+          <h1 className="text-3xl sm:text-6xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
             From Video Podcast To
             <br />
             <span className="text-gradient-primary">
@@ -128,10 +84,8 @@ export default async function Home() {
           </h1>
           
           <p className="text-lg sm:text-xl text-gray-400 max-w-3xl mx-auto mb-8 leading-relaxed">
-              CastClip finds the most engaging and valuable moments in your content
-              and turns them into ready-to-post vertical videos for TikTok,
-              Reels, and Shorts.
-            </p>
+            Turn the BEST podcast moments into ready-to-post clips for TikTok, Reels, and Shorts.
+          </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Link href={user ? "/dashboard" : "/sign-in"}>
@@ -148,7 +102,7 @@ export default async function Home() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-3 max-w-4xl mx-auto">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-gradient-primary mb-2">{stat.number}</div>
@@ -223,25 +177,43 @@ export default async function Home() {
       </section>
 
       {/* Intro Media Grid Section (to be replaced with videos later) */}
-      <section className="px-4 py-16 sm:py-20">
+      <section id="features" className="px-4 py-16 sm:py-20">
         <div className="max-w-6xl mx-auto">
           <div className="grid gap-12">
             {/* Row 1 */}
             <div className="grid md:grid-cols-2 gap-6 md:gap-10 items-center min-h-[320px] sm:min-h-[380px] md:min-h-[440px]">
               <div className="flex flex-col justify-center md:pl-12 lg:pl-16">
-                <h3 className="text-xl sm:text-4xl font-bold">Upload Any MP4</h3>
+                <h3 className="text-3xl sm:text-4xl font-bold">Upload Any MP4</h3>
                 <p className="text-muted-foreground mt-2 max-w-md">
                   Drag and drop MP4 files up to 2GB. We&apos;ll process the entire episode to find viral moments.
                 </p>
               </div>
-              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-square max-w-[22rem] sm:max-w-[26rem] md:max-w-[28rem] lg:max-w-[32rem] mx-auto" />
+              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-video max-w-[28rem] sm:max-w-[32rem] md:max-w-[40rem] lg:max-w-[44rem] mx-auto overflow-hidden"> 
+               <video
+               src="https://castclip.revolt-ai.com/app/examples/demo/upload-demoo.mp4"
+               className="w-full h-full object-cover rounded-3xl"
+               autoPlay
+               loop
+               muted
+               playsInline
+             />
+              </div>
             </div>
 
             {/* Row 2 */}
             <div className="grid md:grid-cols-2 gap-6 md:gap-10 items-center min-h-[320px] sm:min-h-[380px] md:min-h-[440px]">
-              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-square max-w-[22rem] sm:max-w-[26rem] md:max-w-[28rem] lg:max-w-[32rem] mx-auto md:order-1 order-2" />
+              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-video max-w-[28rem] sm:max-w-[32rem] md:max-w-[40rem] lg:max-w-[44rem] mx-auto md:order-1 order-2 overflow-hidden">
+                <video
+                  src="https://castclip.revolt-ai.com/app/examples/demo/channel-demoo.mp4"
+                  className="w-full h-full object-cover rounded-3xl"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              </div>
               <div className="order-1 md:order-2 flex flex-col justify-center md:pl-12 lg:pl-16">
-                <h3 className="text-xl sm:text-4xl font-bold">Connect Your YouTube Channel</h3>
+                <h3 className="text-3xl sm:text-4xl font-bold">Connect Your YouTube Channel</h3>
                 <p className="text-muted-foreground mt-2 max-w-md">
                 Connect your channel to pull videos securely and generate clips without manual uploads.
                 </p>
@@ -251,13 +223,22 @@ export default async function Home() {
             {/* Row 3 */}
             <div className="grid md:grid-cols-2 gap-6 md:gap-10 items-center min-h-[320px] sm:min-h-[380px] md:min-h-[440px]">
               <div className="flex flex-col justify-center md:pl-12 lg:pl-16">
-                <h3 className="text-xl sm:text-4xl font-bold">Paste Video Link.</h3>
+                <h3 className="text-3xl sm:text-4xl font-bold">Paste Video Link.</h3>
                 <p className="text-muted-foreground mt-2 max-w-md">
                   Paste a YouTube video URL and CastClip will generate optimized, share‑ready clips.
                 </p>
               </div>
-              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-square max-w-[22rem] sm:max-w-[26rem] md:max-w-[28rem] lg:max-w-[32rem] mx-auto" />
-            </div>
+              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-video max-w-[28rem] sm:max-w-[32rem] md:max-w-[40rem] lg:max-w-[44rem] mx-auto md:order-1 order-2 overflow-hidden">
+                <video
+                  src="https://castclip.revolt-ai.com/app/examples/demo/link-demoo.mp4"
+                  className="w-full h-full object-cover rounded-3xl"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              </div>
+              </div>
           </div>
         </div>
       </section>
@@ -266,48 +247,59 @@ export default async function Home() {
       <section id="demo" className="px-4 py-12 sm:py-16 md:py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
               See It In Action
             </h2>
           </div>
-          {/* Three-column layout: left/right callouts flanking the video on md+; stacked on mobile */}
-          <div className="grid gap-6 sm:gap-8 md:gap-10 lg:gap-12 md:grid-cols-[1fr_auto_1fr] items-center">
-            {/* Left callout (Captions) */}
-            <div className="hidden md:block relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]">
-              <div className="p-3 md:p-4 lg:p-5 rounded-xl border border-border/50 bg-muted/90 max-w-[280px] md:max-w-xs lg:max-w-sm absolute bottom-[12%] right-[-8px] md:right-[-12px] lg:right-[-16px] xl:right-[-20px]">
-                <div className="text-xs md:text-sm lg:text-base font-semibold mb-1 md:mb-1.5">Live Styled Captions</div>
-                <p className="text-muted-foreground text-xs md:text-sm lg:text-base leading-relaxed">
-                  Readable, dynamic captions that follow speech and boost retention.
-                </p>
-              </div>
-            </div>
-
+          {/* Two-column layout: video on left, features list on right */}
+          <div className="grid gap-8 sm:gap-10 md:gap-12 lg:gap-16 md:grid-cols-2 items-center">
             {/* Video */}
-            <div className="relative flex items-center justify-center min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] px-2 sm:px-4 md:px-0">
+            <div className="flex items-center justify-center order-1 md:order-1">
               <VideoFeaturesPlayer />
-
-              {/* Mobile-sized side callouts positioned around the video */}
-              <div className="absolute left-0 top-[3%] sm:left-2 sm:top-[6%] md:hidden z-10">
-                <div className="p-2 sm:p-2.5 rounded-lg border border-border/50 bg-muted/95 backdrop-blur-sm shadow-lg w-[110px] sm:w-[130px]">
-                  <div className="text-[10px] sm:text-[11px] font-semibold mb-0.5 sm:mb-1 leading-tight break-words">Attention Grabbing Hooks</div>
-                  <p className="text-muted-foreground text-[9px] sm:text-[10px] leading-snug break-words">Short, high‑impact openers.</p>
-                </div>
-              </div>
-              <div className="absolute right-0 bottom-[3%] sm:right-2 sm:bottom-[6%] md:hidden z-10">
-                <div className="p-2 sm:p-2.5 rounded-lg border border-border/50 bg-muted/95 backdrop-blur-sm shadow-lg w-[110px] sm:w-[130px] text-left">
-                  <div className="text-[10px] sm:text-[11px] font-semibold mb-0.5 sm:mb-1 leading-tight break-words">Live Styled Captions</div>
-                  <p className="text-muted-foreground text-[9px] sm:text-[10px] leading-snug break-words">Readable, dynamic captions.</p>
-                </div>
-              </div>
             </div>
 
-            {/* Right callout (Hooks) */}
-            <div className="hidden md:block relative min-h-[400px] md:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]">
-              <div className="p-3 md:p-4 lg:p-5 rounded-xl border border-border/50 bg-muted/90 max-w-[280px] md:max-w-xs lg:max-w-sm ml-auto absolute top-[12%]">
-                <div className="text-xs md:text-sm lg:text-base font-semibold mb-1 md:mb-1.5">Attention Grabbing Hooks</div>
-                <p className="text-muted-foreground text-xs md:text-sm lg:text-base leading-relaxed">
-                  Short, high‑impact openers that immediately grab viewers and set context.
-                </p>
+            {/* Features List */}
+            <div className="order-2 md:order-2 space-y-8 sm:space-10 md:space-12">
+              <div className="flex items-start gap-4 sm:gap-6">
+                <div className="flex-shrink-0 text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-primary">
+                  1
+                </div>
+                <div className="flex-1 pt-1">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2">
+                    Attention Grabbing Hooks
+                  </h3>
+                  <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+                    Short, high‑impact openers that immediately grab viewers and set context.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 sm:gap-6">
+                <div className="flex-shrink-0 text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-primary">
+                  2
+                </div>
+                <div className="flex-1 pt-1">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2">
+                    Best Moments Captured
+                  </h3>
+                  <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+                    Our AI automatically identifies and extracts the most engaging and valuable moments from your podcast.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 sm:gap-6">
+                <div className="flex-shrink-0 text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-primary">
+                  3
+                </div>
+                <div className="flex-1 pt-1">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-semibold mb-2">
+                    Live Styled Captions
+                  </h3>
+                  <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+                    Readable, dynamic captions that follow speech and boost retention.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -386,11 +378,8 @@ export default async function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                  <Play className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-xl font-bold">CastClip</span>
+              <div className="mb-4">
+                <span className="text-xl font-bold text-gradient-primary">CastClip</span>
               </div>
               <p className="text-muted-foreground mb-4">
                 Turn your podcasts into viral social media clips with AI.
