@@ -19,7 +19,7 @@ export default async function Home() {
 
   const stats = [
     { number: "2000+", label: "Clips Generated" },
-    { number: "20+", label: "Clippers" },
+    { number: "20+", label: "podcasters" },
     { number: "10M+", label: "Total Views" },
   ];
 
@@ -67,35 +67,35 @@ export default async function Home() {
       <section className="relative px-4 py-20 sm:py-32 lg:py-24 overflow-hidden">
         <div className="absolute inset-0" />
         <div className="relative max-w-7xl mx-auto text-center">
-          <div className="flex justify-center mb-6">
-            <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Join 20+ successful clippers
+          <div className="flex justify-center mb-4">
+            <Badge variant="secondary" className="px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary animate-fade-in">
+              <Sparkles className="h-4 w-4 mr-2 fill-primary" />
+              Join 20+ successful podcasters
             </Badge>
           </div>
-          
-          <h1 className="text-3xl sm:text-6xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
             From Video Podcast To
             <br />
             <span className="text-gradient-primary">
-              10 Viral Short Clips {" "}
-            </span>
+              10 Viral Short Clips
+            </span>{" "}
             in Minutes
           </h1>
-          
-          <p className="text-lg sm:text-xl text-gray-400 max-w-3xl mx-auto mb-8 leading-relaxed">
+
+          <p className="text-base sm:text-lg md:text-xl lg:text-xl text-gray-400 max-w-3xl mx-auto mb-8 leading-relaxed">
             Turn the BEST podcast moments into ready-to-post clips for TikTok, Reels, and Shorts.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Link href={user ? "/dashboard" : "/sign-in"}>
-              <Button size="lg" className="text-lg font-semibold px-6 py-3 h-auto bg-gradient-primary hover:opacity-90 text-white border-0">
+              <Button size="lg" className="text-base sm:text-lg font-semibold px-6 py-2.5 sm:py-3 h-auto bg-gradient-primary hover:opacity-90 text-white border-0">
                 Start Creating Clips Free
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </Link>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Check className="h-4 w-4 text-green-500" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
               5 free clips • No credit card required
             </div>
 
@@ -105,8 +105,8 @@ export default async function Home() {
           <div className="grid grid-cols-3 max-w-4xl mx-auto">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-gradient-primary mb-2">{stat.number}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-primary mb-2">{stat.number}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -188,15 +188,15 @@ export default async function Home() {
                   Drag and drop MP4 files up to 2GB. We&apos;ll process the entire episode to find viral moments.
                 </p>
               </div>
-              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-video max-w-[28rem] sm:max-w-[32rem] md:max-w-[40rem] lg:max-w-[44rem] mx-auto overflow-hidden"> 
-               <video
-               src="https://castclip.revolt-ai.com/app/examples/demo/upload-demoo.mp4"
-               className="w-full h-full object-cover rounded-3xl"
-               autoPlay
-               loop
-               muted
-               playsInline
-             />
+              <div className="bg-muted/70 border border-border rounded-3xl w-full aspect-video max-w-[28rem] sm:max-w-[32rem] md:max-w-[40rem] lg:max-w-[44rem] mx-auto overflow-hidden">
+                <video
+                  src="https://castclip.revolt-ai.com/app/examples/demo/upload-demoo.mp4"
+                  className="w-full h-full object-cover rounded-3xl"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
               </div>
             </div>
 
@@ -215,7 +215,7 @@ export default async function Home() {
               <div className="order-1 md:order-2 flex flex-col justify-center md:pl-12 lg:pl-16">
                 <h3 className="text-3xl sm:text-4xl font-bold">Connect Your YouTube Channel</h3>
                 <p className="text-muted-foreground mt-2 max-w-md">
-                Connect your channel to pull videos securely and generate clips without manual uploads.
+                  Connect your channel to pull videos securely and generate clips without manual uploads.
                 </p>
               </div>
             </div>
@@ -238,7 +238,7 @@ export default async function Home() {
                   playsInline
                 />
               </div>
-              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -326,7 +326,7 @@ export default async function Home() {
               Everything you need to know about CastClip
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 gap-8 items-start">
             {faqs.map((faq, index) => (
               <Card key={index} className="p-6 hover:shadow-lg transition-shadow duration-300 h-fit">
@@ -355,7 +355,7 @@ export default async function Home() {
             Ready to 10x Your Podcast Growth?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join 20+ clippers who are already growing their audience with AI-powered clips. 
+            Join 20+ podcasters who are already growing their audience with AI-powered clips.
             Start free today—no credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -389,7 +389,7 @@ export default async function Home() {
                 <Badge variant="outline">2k+ Clips</Badge>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -399,7 +399,7 @@ export default async function Home() {
                 <Link href="#faq" className="block hover:text-foreground transition-colors">FAQ</Link>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -407,7 +407,7 @@ export default async function Home() {
                 <Link href="mailto:email@castclip.com" className="block hover:text-foreground transition-colors">Contact Us</Link>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -416,7 +416,7 @@ export default async function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-border/40 mt-12 pt-8 text-center text-sm text-muted-foreground">
             <p>&copy; 2025 CastClip. All rights reserved.</p>
           </div>
